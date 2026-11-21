@@ -1,5 +1,5 @@
-# ClusterIP only: no Ingress, no NodePort. The API has no login and POST /agents/{id}/rerun
-# changes state, so it is reached only through an SSH tunnel (deploy/tunnel.bat).
+# ClusterIP only: no Ingress, no NodePort. The API has no login of its own and POST /agents/{id}/rerun
+# changes state, so it is reached only through Caddy (deploy/k8s/caddy.yaml), which adds the login.
 apiVersion: v1
 kind: Service
 metadata:

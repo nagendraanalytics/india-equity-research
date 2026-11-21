@@ -42,7 +42,7 @@ jobs:
         with:
           context: dashboard
           push: true
-          build-args: NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000
+          build-args: NEXT_PUBLIC_API_BASE=/api
           tags: ghcr.io/${{ env.OWNER }}/ier-dashboard:${{ github.sha }}
           cache-from: type=gha,scope=dashboard
           cache-to: type=gha,mode=max,scope=dashboard
