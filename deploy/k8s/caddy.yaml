@@ -1,4 +1,4 @@
-# Public front door: https://2-29-197-65.nip.io (nip.io resolves that name to the server IP).
+# Public front door: https://ier.2.29.197.65.nip.io (nip.io resolves that name to the server IP).
 # Caddy gets a Let's Encrypt certificate by itself, asks for the login in secret web-login
 # (create it with deploy/create-web-login.sh), and routes:
 #   /api/*  -> api service (prefix stripped)     everything else -> dashboard
@@ -10,7 +10,7 @@ metadata:
   name: caddyfile
 data:
   Caddyfile: |
-    2-29-197-65.nip.io {
+    ier.2.29.197.65.nip.io {
     	encode gzip
     	basicauth {
     		{$WEB_USER} {$WEB_HASH}
