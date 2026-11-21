@@ -1,0 +1,79 @@
+version: financials-2026.11.1
+# Financial Services (banks, NBFCs, insurers in one set: metrics a company type does not report score None and lower confidence, never a guess). No debt/equity: leverage is the business here.
+# Benchmarks are PLACEHOLDER, uncalibrated industry guesses; none of this has been backtested.
+# Metrics with no data score None and lower confidence rather than guessing.
+# Not reviewed by the owner yet: check each metric and benchmark before relying on a score.
+rules:
+  - metric: roe                     # percent
+    comparison: higher_better
+    benchmark: 14.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: quality
+  - metric: net_interest_margin     # percent; banks/NBFCs
+    comparison: higher_better
+    benchmark: 3.2  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: quality
+  - metric: cost_to_income          # percent
+    comparison: lower_better
+    benchmark: 50.0  # PLACEHOLDER, uncalibrated
+    weight: 0.5
+    horizon: long
+    sub_score: quality
+  - metric: gross_npa               # percent of gross advances
+    comparison: lower_better
+    benchmark: 3.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: balance_sheet
+  - metric: capital_adequacy        # percent
+    comparison: higher_better
+    benchmark: 16.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: balance_sheet
+  - metric: revenue_growth          # percent, YoY (total income)
+    comparison: higher_better
+    benchmark: 12.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: growth
+  - metric: promoter_pledging       # percent of promoter holding pledged
+    comparison: lower_better
+    benchmark: 2.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: governance
+  - metric: sector_tailwind         # 0-100, from the sector agent (50 = neutral)
+    comparison: higher_better
+    benchmark: 50.0  # PLACEHOLDER, uncalibrated
+    weight: 0.25
+    horizon: long
+    sub_score: sector_tailwind
+  - metric: price_vs_sma200         # 
+    comparison: higher_better
+    benchmark: 10.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: momentum
+  - metric: momentum_3m             # 
+    comparison: higher_better
+    benchmark: 10.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: momentum
+red_flags:
+  - metric: gross_npa
+    operator: gt
+    threshold: 8.0
+    message: "High gross NPA: {value:g}% exceeds {threshold:g}%"
+  - metric: capital_adequacy
+    operator: lt
+    threshold: 11.0
+    message: "Thin capital: {value:g}% is below {threshold:g}%"
+  - metric: promoter_pledging
+    operator: gt
+    threshold: 20.0
+    message: "High promoter pledging: {value:g}% exceeds {threshold:g}%"

@@ -115,3 +115,27 @@ export type SourceSegment = {
 export type SourcesResponse = {
   segments: SourceSegment[]; connected: number; total: number; affects_score: boolean; note: string;
 };
+
+// --- algorithm library ---
+export type ChartSeries = { name: string; values: Array<number | null>; style: "line" | "dashed" | "bar" | "band_lo" | "band_hi" };
+export type ChartBand = { lo: number; hi: number; label: string };
+export type ChartPanel = { title: string; kind: "price" | "line" | "bars"; series: ChartSeries[]; y_bands: ChartBand[] };
+export type ChartSpec = { dates: string[]; panels: ChartPanel[]; markers: Array<{ day: string; label: string }>; caption: string; as_of: string | null };
+
+export type AlgoInfo = {
+  id: string; name: string; family: string; horizon: "long" | "short"; min_history: number; description: string;
+  band: number[] | null; has_chart: boolean;
+};
+export type AlgoCatalogue = { items: AlgoInfo[]; count: number; blend_weight: number; max_blend_weight: number; notes: string[]; macro_sectors: string[] };
+export type AlgoComposite = { long: number | null; short: number | null; confidence: number; agreement: number | null; n_available: number; n_total: number };
+export type AlgoScoreItem = { algo_id: string; name: string; family: string; horizon: "long" | "short"; score: number | null; value: number | null; reason: string; as_of: string };
+export type StockAlgos = {
+  isin: string; as_of: string | null; age_days: number | null; stale: boolean; composite: AlgoComposite | null;
+  rules: { long: number | null; short: number | null };
+  with_algorithms: { long: number | null; short: number | null; weight: number | null };
+  items: AlgoScoreItem[]; label: string;
+};
+export type SectorAlgoItem = { isin: string; name: string; as_of: string | null; composite: AlgoComposite | null; family_scores: Record<string, number | null> };
+export type SectorAlgos = { macro_sector: string; items: SectorAlgoItem[]; count: number; label: string };
+export type UniverseItem = { isin: string; name: string; macro_sector: string | null; score: number | null; value: number | null; reason: string; as_of: string };
+export type AlgoUniverse = { algo: AlgoInfo; items: UniverseItem[]; count: number; label: string };

@@ -43,8 +43,15 @@ from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session
 
+from ier.algos import registry as algo_registry
+from ier.algos.config import load_algo_config
+from ier.algos.core import Ctx
+from ier.algos.runner import load_all
+from ier.algos.series import load_index_bars, load_price_bars
+from ier.algos.store import latest_composite, latest_results, peer_momentum
 from ier.api import schemas as S
-from ier.db.models import (Agent, AgentEvent, Chunk, EvidenceLink, Fact, Instrument, Job, RunLog,
+from ier.tools.exchange_filings import load_config as load_filings_config
+from ier.db.models import (Agent, AgentEvent, AlgoScore, Chunk, EvidenceLink, Fact, Instrument, Job, RunLog,
                            Scorecard, Signal, Source)
 from ier.runtime.events import AgentNode, tree
 from ier.runtime.queue import QUEUED, tier_names, tier_number
@@ -594,6 +601,109 @@ def create_app(session_factory: Callable[[], Session] | None = None, *, poll_int
         for r in sorted(rows, key=lambda r: (r[0].name, r[0].isin)):
             items.append(signal_out(r, confs.get(r.sig_card)))
         return {"items": items, **meta(len(items))}
+
+    # algorithm library -------------------------------------------------------------------
+    def algo_info(a) -> dict:
+        return {"id": a.id, "name": a.name, "family": a.family, "horizon": a.horizon,
+                "min_history": a.min_history, "description": a.description,
+                "band": list(a.band) if a.band else None, "has_chart": a.chart is not None}
+
+    def algo_or_404(algo_id: str):
+        load_all()
+        try:
+            return algo_registry.get(algo_id)
+        except KeyError:
+            raise HTTPException(404, f"unknown algorithm {algo_id!r}") from None
+
+    def composite_out(c) -> dict | None:
+        return None if c is None else {"long": c.long, "short": c.short, "confidence": c.confidence,
+                                       "agreement": c.agreement, "n_available": c.n_available, "n_total": c.n_total}
+
+    def instrument_or_404(s: Session, isin: str) -> Instrument:
+        inst = s.scalar(select(Instrument).where(Instrument.isin == isin))
+        if inst is None:
+            raise HTTPException(404, f"unknown ISIN {isin!r}")
+        return inst
+
+    @app.get("/algos", response_model=S.AlgoCatalogue)
+    def algos_catalogue(s: Session = Depends(db)):
+        load_all()
+        a_cfg = load_algo_config()
+        items = [algo_info(a) for a in algo_registry.all_algorithms()]
+        return {"items": items, "count": len(items), "blend_weight": a_cfg["blend_weight"],
+                "max_blend_weight": a_cfg["max_blend_weight"], "notes": a_cfg["notes"],
+                "macro_sectors": list(s.scalars(select(Instrument.macro_sector).where(Instrument.macro_sector.is_not(None))
+                                                .distinct().order_by(Instrument.macro_sector)))}
+
+    @app.get("/stocks/{isin}/algos", response_model=S.StockAlgosOut)
+    def stock_algos(isin: str, s: Session = Depends(db)):
+        inst = instrument_or_404(s, isin)
+        load_all()
+        rows = latest_results(s, inst.id)
+        a_cfg = load_algo_config()
+        card = s.scalars(select(Scorecard).where(Scorecard.instrument_id == inst.id)
+                         .order_by(Scorecard.run_date.desc(), Scorecard.id.desc()).limit(1)).first()
+        items = []
+        for algo in algo_registry.all_algorithms():
+            r = rows.get(algo.id)
+            if r is not None:
+                items.append({"algo_id": algo.id, "name": algo.name, "family": algo.family, "horizon": algo.horizon,
+                              "score": r.score, "value": r.value, "reason": r.reason, "as_of": r.as_of})
+        as_of = max((r.as_of for r in rows.values()), default=None)
+        return {"isin": isin, **fresh(as_of),
+                "composite": composite_out(latest_composite(s, inst.id, a_cfg)),
+                "rules": {"long": card.rules_long_score if card else None, "short": card.rules_short_score if card else None},
+                "with_algorithms": {"long": card.long_term_score if card else None,
+                                    "short": card.short_term_score if card else None,
+                                    "weight": card.algo_weight if card else None},
+                "items": items}
+
+    @app.get("/stocks/{isin}/algos/{algo_id}/series", response_model=S.ChartOut)
+    def algo_series(isin: str, algo_id: str, points: int = Query(252, ge=20, le=756), s: Session = Depends(db)):
+        inst = instrument_or_404(s, isin)
+        algo = algo_or_404(algo_id)
+        a_cfg = load_algo_config()
+        local_dir = cfg.get("local_dir", load_filings_config().get("local_dir"))
+        bars, _ = load_price_bars(isin, local_dir or None)
+        index_id = a_cfg["sector_index"].get(inst.macro_sector) if inst.macro_sector else None
+        ctx = Ctx(bars=bars, isin=isin, cfg={**a_cfg, "points": points},
+                  index_bars=load_index_bars(s, index_id) if index_id else None,
+                  peer_momentum=peer_momentum(s, inst.macro_sector) if inst.macro_sector else None)
+        if not bars:
+            return {"dates": [], "panels": [], "markers": [], "caption": "needs daily prices", "as_of": None}
+        if algo.chart is None:
+            return {"dates": [], "panels": [], "markers": [], "caption": algo.compute(ctx).reason, "as_of": None}
+        return algo.chart(ctx)
+
+    @app.get("/sectors/{macro}/algos", response_model=S.SectorAlgosOut)
+    def sector_algos(macro: str, s: Session = Depends(db)):
+        load_all()
+        a_cfg = load_algo_config()
+        insts = s.scalars(select(Instrument).where(Instrument.macro_sector == macro).order_by(Instrument.name, Instrument.isin)).all()
+        items = []
+        for inst in insts:
+            rows = latest_results(s, inst.id)
+            fam: dict[str, list[float]] = {}
+            for algo_id, r in rows.items():
+                if r.score is not None:
+                    fam.setdefault(algo_registry.get(algo_id).family, []).append(r.score)
+            items.append({"isin": inst.isin, "name": inst.name, "as_of": max((r.as_of for r in rows.values()), default=None),
+                          "composite": composite_out(latest_composite(s, inst.id, a_cfg)),
+                          "family_scores": {k: round(sum(v) / len(v), 2) for k, v in sorted(fam.items())}})
+        return {"macro_sector": macro, "items": items, "count": len(items)}
+
+    @app.get("/algos/{algo_id}/universe", response_model=S.UniverseOut)
+    def algo_universe(algo_id: str, s: Session = Depends(db)):
+        algo = algo_or_404(algo_id)
+        q = (select(Instrument, AlgoScore).join(AlgoScore, AlgoScore.instrument_id == Instrument.id)
+             .where(AlgoScore.algo_id == algo_id).order_by(AlgoScore.as_of.desc(), AlgoScore.id.desc()))
+        seen: dict[int, tuple] = {}
+        for inst, row in s.execute(q):
+            seen.setdefault(inst.id, (inst, row))
+        items = [{"isin": i.isin, "name": i.name, "macro_sector": i.macro_sector, "score": r.score, "value": r.value,
+                  "reason": r.reason, "as_of": r.as_of} for i, r in seen.values()]
+        items.sort(key=lambda x: (-(x["score"] if x["score"] is not None else -1), x["name"]))
+        return {"algo": algo_info(algo), "items": items, "count": len(items)}
 
     return app
 

@@ -174,7 +174,7 @@ def test_list_sources_groups_by_segment(session):
     check_source(session, src("fx_usdinr"), http=FakeHttp(Resp(200, {"rates": {"2026-11-13": {"INR": 88}}})),
                  now=NOW, local_dir="")
     out = list_sources(session)
-    assert out["total"] == 14 and out["connected"] == 1
+    assert out["total"] == 20 and out["connected"] == 1
     macro = next(s for s in out["segments"] if s["id"] == "macro")
     assert macro["connected"] == 1 and macro["total"] == 2
 
@@ -197,7 +197,7 @@ def test_seed_source_agents_idempotent_and_shaped(factory):
         assert seed_source_agents(s) == 0
         segs = s.scalars(select(Agent).where(Agent.role == "segment")).all()
         srcs = s.scalars(select(Agent).where(Agent.role == "source")).all()
-        assert len(segs) == 6 and len(srcs) == 14 and n == 20
+        assert len(segs) == 6 and len(srcs) == 20 and n == 26
         assert {a.tier for a in segs} == {queue.tier_number("segment")}
         assert {a.tier for a in srcs} == {queue.tier_number("source")}
         by_id = {a.id: a for a in segs}

@@ -161,7 +161,32 @@ class Scorecard(Base):
     risks: Mapped[Any] = mapped_column(JSON, nullable=True)
     red_flags: Mapped[Any] = mapped_column(JSON, nullable=True)
     rules_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    rules_long_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rules_short_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    algo_long_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    algo_short_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    algo_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at = _now()
+
+
+class AlgoScore(Base):
+    """One algorithm's score for one company as of one price date (score may be null with a reason)."""
+    __tablename__ = "algo_scores"
+    __table_args__ = (
+        UniqueConstraint("instrument_id", "algo_id", "as_of", name="uq_algo_scores_instrument_algo_day"),
+        CheckConstraint("score IS NULL OR score BETWEEN 0 AND 100", name="ck_algo_score_range"),
+        Index("ix_algo_scores_algo_day", "algo_id", "as_of"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"))
+    algo_id: Mapped[str] = mapped_column(String(64))
+    as_of: Mapped[date] = mapped_column(Date)
+    score: Mapped[float | None] = mapped_column(Float)
+    value: Mapped[float | None] = mapped_column(Float)
+    reason: Mapped[str] = mapped_column(Text)
+    source_id: Mapped[int | None] = mapped_column(ForeignKey("sources.id"), nullable=True)
+    computed_at = _now()
+    run_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class EvidenceLink(Base):

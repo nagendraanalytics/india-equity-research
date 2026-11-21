@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/signals", label: "Signals" },
   { href: "/sectors", label: "Sectors" },
   { href: "/stocks", label: "Stocks" },
+  { href: "/algorithms", label: "Algorithms" },
   { href: "/sources", label: "Sources" },
 ];
 

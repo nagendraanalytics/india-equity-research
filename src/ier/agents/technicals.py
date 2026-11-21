@@ -114,7 +114,7 @@ def extract_technicals(session: Session, instrument_id: int, isin: str, local_di
 
     Returns {"files": n, "as_of": iso date|None, "metrics": {...}, "saved": n}. Idempotent: a
     metric already saved for the same price date is not duplicated. Flushes, never commits."""
-    empty = {"files": 0, "as_of": None, "metrics": {}, "saved": 0}
+    empty = {"files": 0, "as_of": None, "metrics": {}, "saved": 0, "source_id": None}
     if not local_dir:
         return empty
     paths: list[Path] = list_feed_files(isin, local_dir, PRICES)
@@ -153,4 +153,4 @@ def extract_technicals(session: Session, instrument_id: int, isin: str, local_di
                          if metric == "rsi14" else "ratio", period=period, period_end=as_of))
         saved += 1
     session.flush()
-    return {"files": len(paths), "as_of": as_of.isoformat(), "metrics": metrics, "saved": saved}
+    return {"files": len(paths), "as_of": as_of.isoformat(), "metrics": metrics, "saved": saved, "source_id": src.id}

@@ -62,6 +62,64 @@ PHARMA_TOPICS = (
      "USFDA inspection Form 483 observations warning letter establishment inspection report", 3),
     TOPICS[2], TOPICS[3],
 )
+
+# Other NSE macro sectors. Each reuses the revenue/margin (TOPICS[0]), balance-sheet (TOPICS[2]) and
+# pledging (TOPICS[3]) topics and adds the sector's own metrics, asked for only when the filing
+# states them. Banks and insurers skip the borrowings topic: debt/equity means nothing for them.
+_NET_DEBT = ("Metric: net_debt_to_ebitda (ratio), only if the filing states it.",
+             "net debt to EBITDA ratio leverage", 3)
+FINANCIALS_TOPICS = (
+    TOPICS[0],
+    ("Metrics (only as the filing states them): net_interest_margin (percent), gross_npa (gross "
+     "non-performing assets as percent of gross advances), capital_adequacy (total capital adequacy "
+     "ratio, percent), roe (return on equity, percent), cost_to_income (percent).",
+     "net interest margin gross NPA capital adequacy ratio return on equity cost to income ratio", 5),
+    TOPICS[3],
+)
+FMCG_TOPICS = (
+    TOPICS[0],
+    ("Metric: volume_growth (underlying volume growth, percent, only if the filing states it).",
+     "underlying volume growth percent domestic volume growth", 3),
+    TOPICS[2], TOPICS[3],
+)
+CONSUMER_DISCRETIONARY_TOPICS = (
+    TOPICS[0],
+    ("Metric: volume_growth (units sold or like-for-like / same-store growth, percent, only if "
+     "the filing states it).",
+     "volume growth units sold same store sales growth like for like growth percent", 3),
+    TOPICS[2], TOPICS[3],
+)
+ENERGY_TOPICS = (
+    TOPICS[0],
+    ("Metric: gross_refining_margin (USD per barrel, only if the filing states it).",
+     "gross refining margin GRM USD per barrel", 3),
+    _NET_DEBT, TOPICS[2], TOPICS[3],
+)
+COMMODITIES_TOPICS = (
+    TOPICS[0],
+    ("Metric: capacity_utilisation (percent of installed capacity, only if the filing states it).",
+     "capacity utilisation percent installed capacity plant utilisation", 3),
+    _NET_DEBT, TOPICS[2], TOPICS[3],
+)
+INDUSTRIALS_TOPICS = (
+    TOPICS[0],
+    ("Metric: order_book_growth (percent change in the order book, year on year, only if the "
+     "filing states that percentage).",
+     "order book order backlog growth percent year on year order inflow", 3),
+    TOPICS[2], TOPICS[3],
+)
+TELECOM_TOPICS = (
+    TOPICS[0],
+    ("Metric: arpu (average revenue per user per month, INR, as the filing states it).",
+     "ARPU average revenue per user per month", 3),
+    _NET_DEBT, TOPICS[2], TOPICS[3],
+)
+UTILITIES_TOPICS = (
+    TOPICS[0],
+    ("Metric: plant_load_factor (percent, thermal or renewable generators, only if stated).",
+     "plant load factor PLF capacity utilisation factor generation availability", 3),
+    _NET_DEBT, TOPICS[2], TOPICS[3],
+)
 # Names models tend to use -> the rules' metric names.
 ALIASES = {
     "operating_margin_percent": "operating_margin", "operating_profit_margin": "operating_margin",
@@ -75,6 +133,14 @@ ALIASES = {
     "form_483_observations": "usfda_observations", "usfda_483_observations": "usfda_observations",
     "fda_observations": "usfda_observations",
     "revenue_growth_yoy": "revenue_growth", "yoy_revenue_growth": "revenue_growth",
+    "nim": "net_interest_margin", "net_interest_margin_percent": "net_interest_margin",
+    "gross_npa_ratio": "gross_npa", "gnpa": "gross_npa", "gross_npa_percent": "gross_npa",
+    "capital_adequacy_ratio": "capital_adequacy", "car": "capital_adequacy", "crar": "capital_adequacy",
+    "return_on_equity": "roe", "cost_income_ratio": "cost_to_income", "cost_to_income_ratio": "cost_to_income",
+    "volume_growth_percent": "volume_growth", "underlying_volume_growth": "volume_growth", "uvg": "volume_growth",
+    "net_debt_ebitda": "net_debt_to_ebitda", "net_debt_to_ebitda_ratio": "net_debt_to_ebitda",
+    "capacity_utilization": "capacity_utilisation", "plf": "plant_load_factor", "grm": "gross_refining_margin",
+    "order_book_growth_percent": "order_book_growth", "arpu_inr": "arpu",
 }
 
 

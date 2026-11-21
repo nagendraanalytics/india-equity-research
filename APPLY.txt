@@ -1,0 +1,12 @@
+Algorithm library (migration 0012). Unzip over C:\projects\ier-clean (overwrites files), then:
+
+  cd C:\projects\ier-clean
+  git pull
+  git add -A
+  git commit -m "feat: algorithm library, Algorithms dashboard menu"
+  git push
+  git pull
+
+Notes: blend_weight in config/algos.yaml stays 0.0 (algorithms do not change final scores).
+Run `alembic upgrade head` on the server before the new API image starts (the release workflow's deploy does the image; migration note is in docs/DEPLOYMENT.md).
+Apply sectors.zip and lowmem.zip first if you have not pushed them yet.

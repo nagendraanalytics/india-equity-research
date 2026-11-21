@@ -5,7 +5,7 @@ def test_sources_lists_all_segments_not_checked(client):
     r = client.get("/sources")
     assert r.status_code == 200
     body = r.json()
-    assert body["total"] == 14 and body["connected"] == 0 and body["affects_score"] is False
+    assert body["total"] == 20 and body["connected"] == 0 and body["affects_score"] is False
     assert {s["id"] for s in body["segments"]} == {"company", "events", "market_flows", "sector_peers",
                                                     "macro", "sentiment"}
     assert all(o["status"] == "not_checked" for s in body["segments"] for o in s["sources"])

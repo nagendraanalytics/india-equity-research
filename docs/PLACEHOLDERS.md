@@ -44,3 +44,10 @@ Residuals that are not values but you should know (see the module docstrings):
   again, so DNS rebinding between the two is not prevented; an unresolvable host is not refused
   by the check (the connection then fails).
 | `src/ier/tools/config/exchange_filings.yaml` | `local_dir` / `local_tier` | `""` / `2` | local-folder filings mode; you decide whether your downloads count as tier 1 (official) or 2 |
+
+## Sector rule sets added 2026-11 (all unreviewed by the owner)
+
+`src/ier/rules/config/{financials,fmcg,consumer_discretionary,energy,commodities,industrials,telecom,utilities}.yaml`:
+every `rules[].benchmark` and `weight` is an uncalibrated guess, like it.yaml and pharma.yaml. Check each
+metric and benchmark per sector before relying on a score. "Services" and "Diversified" have no rule set
+and are refused (`UnsupportedSector`) rather than scored with another sector's rules.

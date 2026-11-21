@@ -31,3 +31,11 @@ cd dashboard && npm install && npm test
    it beyond loopback (leave `IER_API_HOST` unset or 127.0.0.1).
 7. **Filing fetches are refused until you verify the exchange hosts** and list them in
    `src/ier/tools/config/exchange_filings.yaml` `allowed_hosts` (host: tier).
+
+## Algorithm library
+
+25 deterministic price-based algorithms (trend, momentum, risk, breakout, volume, relative strength) plus 8
+phase-2 fundamental stubs run inside the `technicals` step and are stored in `algo_scores`. The dashboard's
+**Algorithms** menu shows per-stock scoreboards and charts, sector rankings, an overview and a page per
+algorithm. Algorithm scores reach the final scores only through `blend_weight` in `config/algos.yaml`
+(default 0 = off, hard maximum 0.30). All bands are uncalibrated placeholders; see `docs/PLACEHOLDERS.md`.

@@ -1,0 +1,65 @@
+version: commodities-2026.11.1
+# Commodities (chemicals, cement and construction materials, metals and mining, forest materials). Cyclical: margins swing with prices.
+# Benchmarks are PLACEHOLDER, uncalibrated industry guesses; none of this has been backtested.
+# Metrics with no data score None and lower confidence rather than guessing.
+# Not reviewed by the owner yet: check each metric and benchmark before relying on a score.
+rules:
+  - metric: operating_margin        # percent (EBITDA margin as filed)
+    comparison: higher_better
+    benchmark: 18.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: quality
+  - metric: capacity_utilisation    # percent
+    comparison: higher_better
+    benchmark: 75.0  # PLACEHOLDER, uncalibrated
+    weight: 0.5
+    horizon: long
+    sub_score: quality
+  - metric: revenue_growth          # percent, YoY
+    comparison: higher_better
+    benchmark: 8.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: growth
+  - metric: net_debt_to_ebitda      # ratio, only when the filing states it
+    comparison: lower_better
+    benchmark: 2.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: balance_sheet
+  - metric: debt_equity             # ratio
+    comparison: lower_better
+    benchmark: 0.6  # PLACEHOLDER, uncalibrated
+    weight: 0.5
+    horizon: long
+    sub_score: balance_sheet
+  - metric: promoter_pledging       # percent of promoter holding pledged
+    comparison: lower_better
+    benchmark: 2.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: governance
+  - metric: sector_tailwind         # 0-100, from the sector agent (50 = neutral)
+    comparison: higher_better
+    benchmark: 50.0  # PLACEHOLDER, uncalibrated
+    weight: 0.25
+    horizon: long
+    sub_score: sector_tailwind
+  - metric: price_vs_sma200         # 
+    comparison: higher_better
+    benchmark: 10.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: momentum
+  - metric: momentum_3m             # 
+    comparison: higher_better
+    benchmark: 10.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: momentum
+red_flags:
+  - metric: promoter_pledging
+    operator: gt
+    threshold: 20.0
+    message: "High promoter pledging: {value:g}% exceeds {threshold:g}%"

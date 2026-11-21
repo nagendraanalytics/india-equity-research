@@ -326,3 +326,106 @@ class SourcesOut(BaseModel):
     total: int
     affects_score: bool
     note: str
+
+
+# --- algorithm library -------------------------------------------------------------------
+
+class AlgoInfo(BaseModel):
+    id: str
+    name: str
+    family: str
+    horizon: str
+    min_history: int
+    description: str
+    band: list[float] | None = Field(None, description="PLACEHOLDER: value that scores 0, value that scores 100")
+    has_chart: bool
+
+
+class AlgoCatalogue(BaseModel):
+    items: list[AlgoInfo]
+    count: int
+    blend_weight: float
+    max_blend_weight: float
+    notes: list[str] = []
+    macro_sectors: list[str] = []
+
+
+class AlgoCompositeOut(BaseModel):
+    long: float | None
+    short: float | None
+    confidence: float
+    agreement: float | None
+    n_available: int
+    n_total: int
+
+
+class AlgoScoreOut(BaseModel):
+    algo_id: str
+    name: str
+    family: str
+    horizon: str
+    score: float | None
+    value: float | None
+    reason: str
+    as_of: date
+
+
+class AlgoPair(BaseModel):
+    long: float | None
+    short: float | None
+
+
+class AlgoBlendOut(AlgoPair):
+    weight: float | None
+
+
+class StockAlgosOut(BaseModel):
+    isin: str
+    as_of: date | None
+    age_days: int | None
+    stale: bool
+    composite: AlgoCompositeOut | None
+    rules: AlgoPair
+    with_algorithms: AlgoBlendOut
+    items: list[AlgoScoreOut]
+    label: str = SIGNAL_LABEL
+
+
+class SectorAlgoItem(BaseModel):
+    isin: str
+    name: str
+    as_of: date | None
+    composite: AlgoCompositeOut | None
+    family_scores: dict[str, float | None]
+
+
+class SectorAlgosOut(BaseModel):
+    macro_sector: str
+    items: list[SectorAlgoItem]
+    count: int
+    label: str = SIGNAL_LABEL
+
+
+class UniverseItem(BaseModel):
+    isin: str
+    name: str
+    macro_sector: str | None
+    score: float | None
+    value: float | None
+    reason: str
+    as_of: date
+
+
+class UniverseOut(BaseModel):
+    algo: AlgoInfo
+    items: list[UniverseItem]
+    count: int
+    label: str = SIGNAL_LABEL
+
+
+class ChartOut(BaseModel):
+    dates: list[str]
+    panels: list[dict[str, Any]]
+    markers: list[dict[str, Any]]
+    caption: str
+    as_of: str | None = None

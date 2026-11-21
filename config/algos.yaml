@@ -1,0 +1,12 @@
+# Algorithm library settings. Every band below is a PLACEHOLDER, uncalibrated (see docs/PLACEHOLDERS.md).
+blend_weight: 0.0        # share of the final score taken from algorithms; 0 = off. Code caps it at 0.30.
+max_stale_days: 10       # PLACEHOLDER, uncalibrated: older last price blanks every algorithm
+enabled_families: null   # null = all families
+sector_index:            # macro sector -> index series id (display series in config/sources.yaml)
+  Information Technology: nifty_it
+  Healthcare: nifty_pharma
+  Fast Moving Consumer Goods: nifty_fmcg
+  Financial Services: nifty_financial_services
+  Energy: nifty_oil_gas
+  Commodities: nifty_commodities
+algos: {}                # per-algorithm {worst, best} bands, added with each algorithm (PLACEHOLDER, uncalibrated)

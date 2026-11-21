@@ -14,7 +14,7 @@ retry:   # PLACEHOLDER values
 workers:   # PLACEHOLDER values
   sector: 1
   industry: 1
-  company: 2
+  company: 1
   segment: 1
   source: 2
 

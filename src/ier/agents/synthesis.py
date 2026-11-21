@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from ier.algos.blend import blend_scores
 from ier.agents.untrusted import UNTRUSTED_NOTE, excerpts_block
 from ier.agents.verifier import VerifiedClaims, load_config
 from ier.db.models import Chunk, EvidenceLink, Scorecard
@@ -95,12 +96,14 @@ def _item(c: Claim) -> dict:
 
 def build_scorecard(
     session: Session, instrument_id: int, rule_result: RuleResult, verified: VerifiedClaims,
-    run_date: date, *, config: dict | None = None,
+    run_date: date, *, config: dict | None = None, algo=None, algo_weight: float = 0.0,
 ) -> Scorecard:
     """Persist one Scorecard for (instrument, run_date); a same-day rerun updates that row in place
     (same id, so Signals pointing at it stay valid) and recreates its EvidenceLinks.
 
-    Scores, sub-scores and red flags come only from `rule_result` (None stays None).
+    Sub-scores and red flags come only from `rule_result` (None stays None). The final long/short
+    scores are the rules scores blended with the algorithm composite `algo` at `algo_weight`
+    (capped at 0.30; weight 0 or no composite leaves the rules scores exactly as they were).
     Flushes, never commits.
     """
     cfg = config or load_config()
@@ -111,7 +114,11 @@ def build_scorecard(
     card = session.scalars(select(Scorecard).where(
         Scorecard.instrument_id == instrument_id, Scorecard.run_date == run_date)).first()
     fields = dict(
-        long_term_score=rule_result.long_term, short_term_score=rule_result.short_term,
+        long_term_score=blend_scores(rule_result.long_term, algo.long if algo else None, algo_weight),
+        short_term_score=blend_scores(rule_result.short_term, algo.short if algo else None, algo_weight),
+        rules_long_score=rule_result.long_term, rules_short_score=rule_result.short_term,
+        algo_long_score=algo.long if algo else None, algo_short_score=algo.short if algo else None,
+        algo_weight=float(algo_weight),
         confidence=_confidence(len(distinct), none_count, cfg),
         sub_scores=dict(rule_result.sub_scores),
         benefits=[_item(c) for c in kept if c.kind == "benefit"],

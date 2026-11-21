@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useApi } from "../lib/useApi";
 import { Sparkline } from "./charts";
 import type { HistoryResponse, StockDetail } from "../lib/types";
+import { AlgoCard } from "./AlgoCard";
 import { Freshness } from "./Freshness";
 import { ErrorBox, Loading, RatingBadge, Value, fmt } from "./ui";
 
@@ -29,6 +30,7 @@ export function StockView({ isin }: { isin: string }) {
           Short-term <Sparkline label="Short-term score history" points={hist.data.items.map((p) => ({ date: p.run_date, value: p.short_term_score }))} />
         </p>
       ) : <p className="muted">{hist.state === "loading" ? "Loading history…" : "No score history yet."}</p>}
+      <AlgoCard isin={isin} />
       <h2>Sub-scores</h2><Value v={s.sub_scores} />
       <h2>Benefits</h2><Value v={s.benefits} />
       <h2>Risks</h2><Value v={s.risks} />

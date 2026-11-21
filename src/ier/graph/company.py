@@ -46,6 +46,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from ier.agents.feed_events import analyse_feed, view_payload
+from ier.agents import fundamentals as _fund
 from ier.agents.fundamentals import PHARMA_TOPICS, TOPICS, extract_facts
 from ier.agents.technicals import extract_technicals
 from ier.agents.sector import analyse_sector, rank_industry
@@ -66,21 +67,46 @@ from ier.tools.feeds import NEWS, SOCIAL, feeds_signature
 logger = logging.getLogger(__name__)
 
 RULES_DIR = Path(__file__).resolve().parents[1] / "rules" / "config"
-RULES_PATH = RULES_DIR / "it.yaml"            # default rule set (IT)
-# Macro sector (NSE classification) -> its rule set. Anything not listed uses the IT rules.
-RULES_BY_MACRO_SECTOR = {"Healthcare": RULES_DIR / "pharma.yaml"}
+RULES_PATH = RULES_DIR / "it.yaml"            # default rule set, for an instrument with no macro sector
+# NSE macro-economic sector -> (rule file, extraction topics). A macro sector that is not listed
+# here ("Services", "Diversified") is refused rather than scored with another sector's rules.
+SECTOR_SETUP = {
+    "Information Technology": ("it.yaml", TOPICS),
+    "Healthcare": ("pharma.yaml", PHARMA_TOPICS),
+    "Financial Services": ("financials.yaml", _fund.FINANCIALS_TOPICS),
+    "Fast Moving Consumer Goods": ("fmcg.yaml", _fund.FMCG_TOPICS),
+    "Consumer Discretionary": ("consumer_discretionary.yaml", _fund.CONSUMER_DISCRETIONARY_TOPICS),
+    "Energy": ("energy.yaml", _fund.ENERGY_TOPICS),
+    "Commodities": ("commodities.yaml", _fund.COMMODITIES_TOPICS),
+    "Industrials": ("industrials.yaml", _fund.INDUSTRIALS_TOPICS),
+    "Telecommunication": ("telecom.yaml", _fund.TELECOM_TOPICS),
+    "Utilities": ("utilities.yaml", _fund.UTILITIES_TOPICS),
+}
+RULES_BY_MACRO_SECTOR = {k: RULES_DIR / v[0] for k, v in SECTOR_SETUP.items()}
+
+
+class UnsupportedSector(ValueError):
+    """The instrument's macro sector has no rule set yet."""
+
+
+def _setup_for(session: Session, instrument_id: int) -> tuple:
+    macro = session.scalar(select(Instrument.macro_sector).where(Instrument.id == instrument_id))
+    if not macro:
+        return ("it.yaml", TOPICS)
+    if macro not in SECTOR_SETUP:
+        raise UnsupportedSector(
+            f"no rule set for macro sector {macro!r}; supported: {', '.join(sorted(SECTOR_SETUP))}")
+    return SECTOR_SETUP[macro]
 
 
 def topics_for(session: Session, instrument_id: int) -> tuple:
-    """Extraction topics for this instrument's macro sector (pharma has its own)."""
-    macro = session.scalar(select(Instrument.macro_sector).where(Instrument.id == instrument_id))
-    return PHARMA_TOPICS if macro == "Healthcare" else TOPICS
+    """Extraction topics for this instrument's macro sector."""
+    return _setup_for(session, instrument_id)[1]
 
 
 def rules_path_for(session: Session, instrument_id: int) -> Path:
-    """The scoring rule file for this instrument's macro sector (IT rules when not mapped)."""
-    macro = session.scalar(select(Instrument.macro_sector).where(Instrument.id == instrument_id))
-    return RULES_BY_MACRO_SECTOR.get(macro or "", RULES_PATH)
+    """The scoring rule file for this instrument's macro sector (IT rules when it has none)."""
+    return RULES_DIR / _setup_for(session, instrument_id)[0]
 RUN_TRIGGER = "run"
 COMPANY_ROLE = "company"
 WORKER_ROLES = ("fundamentals", "synthesis")

@@ -42,6 +42,24 @@ sources:
   - {id: nifty_pharma,     segment: market_flows, name: "Nifty Pharma index (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
      folder: "data/sources/nifty_pharma", series: nifty_pharma, stale_days: 5,
      terms: "Export from the NSE historical index data page yourself (Date,Close)"}
+  - {id: nifty_financial_services, segment: market_flows, name: "Nifty Financial Services index (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/nifty_financial_services", series: nifty_financial_services, stale_days: 5,
+     terms: "Export from the NSE historical index data page yourself (Date,Close)"}
+  - {id: nifty_fmcg, segment: market_flows, name: "Nifty FMCG index (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/nifty_fmcg", series: nifty_fmcg, stale_days: 5,
+     terms: "Export from the NSE historical index data page yourself (Date,Close)"}
+  - {id: nifty_auto, segment: market_flows, name: "Nifty Auto index (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/nifty_auto", series: nifty_auto, stale_days: 5,
+     terms: "Export from the NSE historical index data page yourself (Date,Close)"}
+  - {id: nifty_oil_gas, segment: market_flows, name: "Nifty Oil & Gas index (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/nifty_oil_gas", series: nifty_oil_gas, stale_days: 5,
+     terms: "Export from the NSE historical index data page yourself (Date,Close)"}
+  - {id: nifty_commodities, segment: market_flows, name: "Nifty Commodities index (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/nifty_commodities", series: nifty_commodities, stale_days: 5,
+     terms: "Export from the NSE historical index data page yourself (Date,Close)"}
+  - {id: nifty_telecom, segment: market_flows, name: "Nifty Telecommunications index (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/nifty_telecom", series: nifty_telecom, stale_days: 5,
+     terms: "Export from the NSE historical index data page yourself (Date,Close)"}
   - {id: india_vix,        segment: market_flows, name: "India VIX (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
      folder: "data/sources/india_vix", series: india_vix, stale_days: 5, terms: "Your own NSE export"}
   - {id: peers_derived,    segment: sector_peers, name: "Peer ranking from our scorecards", kind: derived, refresh_minutes: 30,
