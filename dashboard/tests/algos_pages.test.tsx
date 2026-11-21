@@ -21,23 +21,31 @@ describe("navigation", () => {
 });
 
 describe("StockAlgos", () => {
-  it("lists every family, and fetches a chart only after it is opened", async () => {
-    const { log } = installFetch({ ...ROUTES, [`GET /stocks/${ISIN}/algos/mom_3m/series`]: SERIES });
+  it("lists every family, loads each family's first chart at once and another when its tab is chosen", async () => {
+    const { log } = installFetch({ ...ROUTES, [`GET /stocks/${ISIN}/algos/mom_3m/series`]: SERIES, [`GET /stocks/${ISIN}/algos/rsi14/series`]: { ...SERIES, caption: "RSI caption" },
+                                   [`GET /stocks/${ISIN}/algos/sma50_vs_sma200/series`]: { ...SERIES, caption: "Trend caption" } });
     const { container } = render(<StockAlgos isin={ISIN} />);
     for (const fam of ["momentum", "trend", "value_quality"]) expect(await screen.findByRole("heading", { name: new RegExp(fam.replace("_", "[ _]"), "i") })).toBeInTheDocument();
-    expect(log.some((l) => l.includes("/series"))).toBe(false);
-    fireEvent.click(screen.getByRole("button", { name: /Show chart: 3-month return/ }));
-    await waitFor(() => expect(log.some((l) => l.startsWith(`GET /stocks/${ISIN}/algos/mom_3m/series`))).toBe(true));
     expect(await screen.findByRole("img", { name: "Rolling return caption" })).toBeInTheDocument();
-    expect(screen.getByText(/placeholder/i)).toBeInTheDocument();
+    expect(log.some((l) => l.startsWith(`GET /stocks/${ISIN}/algos/rsi14/series`))).toBe(false);
+    fireEvent.click(screen.getByRole("tab", { name: /RSI \(14\)/ }));
+    await waitFor(() => expect(log.some((l) => l.startsWith(`GET /stocks/${ISIN}/algos/rsi14/series`))).toBe(true));
+    expect(await screen.findByRole("img", { name: "RSI caption" })).toBeInTheDocument();
+    expect(screen.getAllByText(/placeholder/i).length).toBeGreaterThan(0);
     expect(tradingWords(container.textContent ?? "")).toEqual([]);
+  });
+
+  it("reads the scores back in plain language", async () => {
+    installFetch(ROUTES);
+    render(<StockAlgos isin={ISIN} />);
+    expect(await screen.findByText(/Strongest positive lean: 3-month return/)).toBeInTheDocument();
   });
 
   it("shows needs-data rows without a chart button", async () => {
     installFetch(ROUTES);
     render(<StockAlgos isin={ISIN} />);
-    expect(await screen.findByText(/needs trailing four-quarter EPS/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Show chart: Price to earnings/ })).not.toBeInTheDocument();
+    expect((await screen.findAllByText(/needs trailing four-quarter EPS/)).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("tab", { name: /Price to earnings/ })).not.toBeInTheDocument();
   });
 
   it("shows composite dials, agreement and coverage", async () => {
@@ -57,7 +65,7 @@ describe("StockAlgos", () => {
   it("explains a chart that cannot be drawn", async () => {
     installFetch({ ...ROUTES, [`GET /stocks/${ISIN}/algos/rsi14/series`]: { ...SERIES, panels: [], dates: [], caption: "needs 15 daily prices" } });
     render(<StockAlgos isin={ISIN} />);
-    fireEvent.click(await screen.findByRole("button", { name: /Show chart: RSI/ }));
+    fireEvent.click(await screen.findByRole("tab", { name: /RSI/ }));
     expect(await screen.findByText(/needs more history/i)).toHaveTextContent(/needs 15 daily prices/);
   });
 });
@@ -100,7 +108,7 @@ describe("SectorAlgos / AlgosOverview / AlgoExplainer", () => {
     installFetch(ROUTES);
     const { container } = render(<AlgosOverview />);
     expect(await screen.findByText(/Algorithm weight in final scores: 0% \(off\)/)).toBeInTheDocument();
-    expect(await screen.findByRole("img", { name: /Average algorithm score by sector and family/ })).toBeInTheDocument();
+    expect(await screen.findByRole("table", { name: /Average algorithm score by sector and family/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Most positive/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Most negative/ })).toBeInTheDocument();
     expect(tradingWords(container.textContent ?? "")).toEqual([]);

@@ -52,3 +52,12 @@ export const ROUTES = {
   "GET /sectors/Healthcare/algos": { ...SECTOR, macro_sector: "Healthcare", items: [], count: 0 },
   "GET /algos/mom_3m/universe": UNIVERSE,
 };
+
+export const UNIVERSE_RSI: AlgoUniverse = {
+  algo: CATALOGUE.items[1], count: 2, label: STOCK.label,
+  items: [
+    { isin: ISIN, name: "Alpha Ltd", macro_sector: "Information Technology", score: 38, value: 74, reason: "RSI (14): 74.00 (overbought)", as_of: "2026-11-20" },
+    { isin: "INE002A01018", name: "Beta Ltd", macro_sector: "Information Technology", score: 80, value: 28, reason: "RSI (14): 28.00 (oversold)", as_of: "2026-11-20" },
+  ],
+};
+export const FAMILY_ROUTES = { ...ROUTES, "GET /algos/rsi14/universe": UNIVERSE_RSI };

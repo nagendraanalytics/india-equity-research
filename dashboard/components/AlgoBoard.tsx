@@ -12,7 +12,7 @@ export function AlgoBoard({ items }: { items: AlgoScoreItem[] }) {
     <div>
       {families.map((f) => (
         <section key={f}>
-          <h3>{familyLabel(f)}</h3>
+          <p className="table-cap">{familyLabel(f)}</p>
           <table>
             <thead><tr><th>Algorithm</th><th>Score</th><th>Reading</th><th>Value</th><th>Why</th><th>As of</th></tr></thead>
             <tbody>

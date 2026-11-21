@@ -17,3 +17,12 @@ export const horizonLabel = (h: string) => (h === "long" ? "long-term" : "short-
 export const bandText = (band: number[] | null) =>
   band ? `Scores 0 at ${band[0]} and 100 at ${band[1]} (placeholder band, not calibrated).` : "Needs data that is not available yet.";
 export const pct = (w: number | null | undefined) => (w === null || w === undefined ? "not recorded" : `${(w * 100).toFixed(0)}%`);
+
+export const FAMILIES: { id: string; label: string; blurb: string }[] = [
+  { id: "trend", label: "Trend", blurb: "Is the price drifting up or down, and is that drift steady? Moving-average gaps, MACD and trend slope." },
+  { id: "momentum", label: "Momentum", blurb: "How fast has the price moved recently? Returns over 1 to 12 months, rate of change and RSI." },
+  { id: "risk", label: "Risk", blurb: "How rough has the ride been? Volatility, drawdown, downside deviation, risk-adjusted return and stretch versus average." },
+  { id: "breakout", label: "Breakout", blurb: "Where does the price sit against its 52-week range and 20-day channel?" },
+  { id: "volume", label: "Volume", blurb: "Is trading activity confirming the price move? On-balance volume and volume against its 20-day average." },
+  { id: "relative", label: "Relative strength", blurb: "How does the stock do against its sector index and its sector peers?" },
+];

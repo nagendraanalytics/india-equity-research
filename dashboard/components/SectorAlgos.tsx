@@ -5,7 +5,7 @@ import { familyLabel } from "../lib/algos";
 import { useApi } from "../lib/useApi";
 import type { SectorAlgos as SectorAlgosData } from "../lib/types";
 import { Scatter, ScoreCell } from "./charts";
-import { Heatmap } from "./charts2";
+import { ScoreMatrix } from "./charts4";
 import { Empty, ErrorBox, Loading, fmt } from "./ui";
 
 export function SectorAlgos({ macro }: { macro: string }) {
@@ -41,12 +41,9 @@ export function SectorAlgos({ macro }: { macro: string }) {
           <Scatter dots={items.filter((i) => i.composite?.long != null && i.composite?.short != null)
             .map((i) => ({ label: i.name, x: i.composite!.long as number, y: i.composite!.short as number, rating: null, href: `/algorithms/stock/${i.isin}` }))} />
           <h2>Average score by company and family</h2>
-          <Heatmap title="Average algorithm score by company and family" rows={items.map((i) => i.name)} cols={fams.map(familyLabel)}
-                   cell={(r, c) => {
-                     const it = items.find((i) => i.name === r)!;
-                     const key = fams.find((f) => familyLabel(f) === c)!;
-                     return { value: Math.round(it.family_scores[key] ?? 0), color: "var(--accent)" };
-                   }} />
+          <ScoreMatrix title="Average algorithm score by company and family" rows={items.map((i) => i.name)} cols={fams.map(familyLabel)}
+                       rowHref={(r) => `/algorithms/stock/${encodeURIComponent(items.find((i) => i.name === r)!.isin)}`}
+                       cell={(r, c) => items.find((i) => i.name === r)!.family_scores[fams.find((f) => familyLabel(f) === c)!] ?? null} />
           <p className="note">Companies with a blank cell have no score for that family yet. Average of {fmt(items.length, 0)} companies shown.</p>
         </>
       )}

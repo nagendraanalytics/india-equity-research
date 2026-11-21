@@ -45,7 +45,7 @@ export function StackedBars({ rows, colors, title }: { rows: StackRow[]; colors:
   const keys = Object.keys(colors);
   return (
     <figure className="chart">
-      <svg viewBox={`0 0 ${W} ${rows.length * h + 4}`} role="img" aria-label={title}>
+      <svg viewBox={`0 0 ${W} ${rows.length * h + 4}`} role="img" aria-label={title} style={{ maxWidth: W * 1.5 }}>
         {rows.map((r, i) => {
           let x = labelW;
           return (
@@ -79,7 +79,7 @@ export function Histogram({ values, bins = 10, title }: { values: number[]; bins
   const bw = (W - P - 6) / bins;
   return (
     <figure className="chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title} style={{ maxWidth: W * 1.5 }}>
         {counts.map((c, i) => {
           const h = (c / max) * (H - P - 14);
           return (
@@ -110,7 +110,7 @@ export function Heatmap({ rows, cols, cell, title }: {
   const max = Math.max(1, ...all);
   return (
     <figure className="chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title} style={{ maxWidth: W * 1.6 }}>
         {cols.map((c, j) => (
           <text key={c} x={labelW + j * cw + cw / 2} y={22} textAnchor="middle" fontSize="9" className="c-muted">{c.length > 11 ? c.slice(0, 10) + "…" : c}</text>
         ))}
@@ -156,7 +156,7 @@ export function StackedArea({ series, labels, title }: { series: AreaSeries[]; l
   });
   return (
     <figure className="chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title} style={{ maxWidth: W * 1.5 }}>
         {[0, 0.5, 1].map((f) => <g key={f}><line x1={P} x2={W - 6} y1={y(max * f)} y2={y(max * f)} className="c-grid" />
           <text x={P - 4} y={y(max * f) + 3} textAnchor="end" fontSize="9" className="c-dim">{Math.round(max * f)}</text></g>)}
         {layers.map(({ s, d }) => <path key={s.key} d={d} fill={s.color} fillOpacity={0.7} stroke={s.color} />)}
@@ -179,7 +179,7 @@ export function Columns({ labels, values, title, color = "var(--accent)", unit =
   const bw = (W - P - 6) / n;
   return (
     <figure className="chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title} style={{ maxWidth: W * 1.5 }}>
         <line x1={P} x2={W - 6} y1={H - 20} y2={H - 20} className="c-grid" />
         <text x={P - 4} y={16} textAnchor="end" fontSize="9" className="c-dim">{max >= 1000 ? `${Math.round(max / 1000)}k` : max}</text>
         {values.map((v, i) => {
@@ -202,7 +202,7 @@ export function HBars({ rows, title, color = "var(--accent)" }: { rows: HRow[]; 
   const max = Math.max(1e-9, ...rows.map((r) => r.value));
   return (
     <figure className="chart">
-      <svg viewBox={`0 0 ${W} ${rows.length * h + 4}`} role="img" aria-label={title}>
+      <svg viewBox={`0 0 ${W} ${rows.length * h + 4}`} role="img" aria-label={title} style={{ maxWidth: W * 1.5 }}>
         {rows.map((r, i) => {
           const w = (r.value / max) * (W - labelW - 50);
           return (
