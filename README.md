@@ -47,5 +47,6 @@ into `<local_dir>/<ISIN>/prices__nse__<date>.csv` for every company that has an 
 
 ## Filings for the fundamentals
 `python -m ier.runtime nse-filings [--kind results|annual|all]` downloads quarterly results and annual reports from NSE into
-`<local_dir>/<ISIN>/` (the layout `local_filings` reads), skipping files already there. Two CronJobs run it (results daily,
-annual reports weekly). NSE access is unverified and may be blocked from the server; see `docs/PLACEHOLDERS.md`.
+`<local_dir>/<ISIN>/` (the layout `local_filings` reads), skipping files already there. NSE blocks the server address for this part of its site, so run it from a home PC instead:
+`python -m ier.tools.nse_filings --isin ITC=INE154A01025,DABUR=INE016A01026 --out C:\filings` (needs only `httpx` and `pyyaml`),
+then copy the folder to the server; see `docs/DEPLOYMENT.md`. The two server CronJobs are suspended.

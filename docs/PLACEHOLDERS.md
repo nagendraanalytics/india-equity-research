@@ -75,5 +75,6 @@ then run it from a home connection and copy the company folders to the server.
 NSE's terms of use for programmatic access, the three endpoint paths under `endpoints:`, and the JSON field names tried in
 `nse_filings.py` (`URL_KEYS`, `PUBLISHED_KEYS`, `PERIOD_END_KEYS`, `FY_END_YEAR_KEYS`). `min_gap_seconds` (1.0), the
 retention (2 years of results, 3 of annual reports) and the size caps (20 / 60 MB) are guesses. NSE may refuse server
-addresses; the run then prints `blocked` and saves nothing (place the PDFs by hand, or run from a home connection).
-First live check: `python -m ier.runtime nse-filings --symbols ITC --kind results`.
+addresses, and it DOES refuse the Hetzner server (HTTP 403 on www.nseindia.com, tested 2026-11-21; the price files on
+nsearchives.nseindia.com are fine). So the two filings CronJobs are `suspend: true` and filings are fetched from a home PC with
+`python -m ier.tools.nse_filings --isin ITC=INE154A01025 --out <folder>` (no database), then copied to the server (see DEPLOYMENT.md).

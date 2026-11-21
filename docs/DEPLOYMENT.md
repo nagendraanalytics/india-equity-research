@@ -42,7 +42,17 @@ Existing companies get algorithm scores on their next run. Keep `blend_weight: 0
   The server never pushes to GitHub; that would need a deploy key on the server, so it is deferred until there is something
   small worth pushing.
 * **Data stays off git.** Filings, price CSVs and the database live on the `ier-data` volume and in Postgres.
-* **Filings:** the `nse-filings-results` (weekdays) and `nse-filings-annual` (Sundays) CronJobs fill
-  `/app/data/filings/<ISIN>/`. First run by hand to see whether NSE accepts the server address:
-  `kubectl exec -n ier deploy/api -c api -- python -m ier.runtime nse-filings --symbols ITC --kind results`
-  A `blocked` status means NSE refused it; nothing was saved.
+* **Filings from a home PC.** NSE returns HTTP 403 to the server for the filings listing, so the CronJobs
+  `nse-filings-results` and `nse-filings-annual` are suspended. Instead, on your Windows PC (Python with
+  `pip install httpx pyyaml`, repo folder as the current directory):
+  ```
+  set PYTHONPATH=src
+  python -m ier.tools.nse_filings --isin HINDUNILVR=INE030A01027,ITC=INE154A01025,NESTLEIND=INE239A01024,BRITANNIA=INE216A01030,DABUR=INE016A01026,MARICO=INE196A01026 --out C:\filings
+  scp -r C:\filings ier@2.29.197.65:~/
+  ```
+  Then on the server, stream the folder into the api pod's volume (no `tar` is needed inside the pod):
+  ```
+  tar -C ~/filings -cf - . | kubectl exec -i -n ier deploy/api -c api -- python -c "import sys,tarfile; tarfile.open(fileobj=sys.stdin.buffer, mode='r|').extractall('/app/data/filings')"
+  ```
+  Files already on the server are overwritten with identical copies; the watcher then queues the changed companies.
+  The command prints `blocked` if NSE refuses your home connection too; then place the PDFs by hand.

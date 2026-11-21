@@ -351,3 +351,43 @@ def test_cli_parser_knows_the_command():
     from ier.runtime.__main__ import _parser
     a = _parser().parse_args(["nse-filings", "--symbols", "ITC", "--kind", "annual"])
     assert a.command == "nse-filings" and a.symbols == "ITC" and a.kind == "annual" and a.loop is None
+
+
+# --- home-PC mode: no database, few dependencies ------------------------------------------------
+
+def test_update_for_pairs_needs_no_database(tmp_path):
+    res = nf.update_filings_for({"ITC": ITC}, FakeClient(), CFG, str(tmp_path), now=NOW)
+    assert {r["status"] for r in res} == {"written"}
+    assert (tmp_path / ITC / "annual_report__FY2026__2026-07-23.pdf").exists()
+
+
+def test_module_imports_without_sqlalchemy_or_the_ier_database_layer():
+    import subprocess
+    import sys
+    from pathlib import Path
+    src = str(Path(nf.__file__).resolve().parents[2])
+    code = ("import sys; sys.modules['sqlalchemy'] = None; sys.path.insert(0, %r); "
+            "import ier.tools.nse_filings as m; assert 'ier.db.models' not in sys.modules; print('ok')" % src)
+    out = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True)
+    assert out.stdout.strip() == "ok", out.stderr
+
+
+def test_standalone_main_writes_to_out_and_prints_lines(tmp_path, capsys):
+    rc = nf.main(["--isin", f"ITC={ITC}", "--out", str(tmp_path / "out"), "--kind", "results"],
+                 client=FakeClient(), now=NOW)
+    assert rc == 0
+    assert any(p.name.startswith("results__") for p in (tmp_path / "out" / ITC).iterdir())
+    assert "ITC" in capsys.readouterr().out
+
+
+def test_standalone_main_rejects_bad_input(tmp_path):
+    for argv in (["--isin", "ITC", "--out", str(tmp_path)],                 # not SYMBOL=ISIN
+                 ["--isin", "ITC=../etc", "--out", str(tmp_path)],           # invalid ISIN
+                 ["--isin", f"ITC={ITC}"]):                                  # no --out
+        with pytest.raises(SystemExit):
+            nf.main(argv, client=FakeClient(), now=NOW)
+
+
+def test_standalone_main_exit_1_when_blocked(tmp_path, capsys):
+    rc = nf.main(["--isin", f"ITC={ITC}", "--out", str(tmp_path)], client=FakeClient(blocked=True), now=NOW)
+    assert rc == 1 and "blocked" in capsys.readouterr().out

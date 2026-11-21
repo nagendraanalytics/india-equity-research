@@ -1,12 +1,14 @@
 # Downloads NSE quarterly results (weekdays 20:00 IST = 14:30 UTC) and annual reports (Sundays 08:30 IST =
 # 03:00 UTC) into each company's folder: python -m ier.runtime nse-filings --kind results|annual.
-# UNVERIFIED: NSE's terms and endpoints are not confirmed, and NSE may refuse the server address. A refused
-# run exits non-zero (status "blocked") and changes nothing. To pause either job: set `suspend: true`.
+# SUSPENDED: NSE returns HTTP 403 to the Hetzner address for www.nseindia.com (tested 2026-11-21), so these jobs
+# would only fail. Fetch filings from a home connection instead (docs/DEPLOYMENT.md, "Filings from a home PC").
+# Set `suspend: false` only if NSE stops blocking the server. NSE's terms and endpoints are also unverified.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: nse-filings-results
 spec:
+  suspend: true
   schedule: "30 14 * * 1-5"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 2
@@ -49,6 +51,7 @@ kind: CronJob
 metadata:
   name: nse-filings-annual
 spec:
+  suspend: true
   schedule: "0 3 * * 0"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 2

@@ -21,7 +21,7 @@ from urllib.parse import quote, urlsplit
 import httpx
 import yaml
 
-from ier.tools.local_filings import ISIN_RE
+ISIN_RE = re.compile(r"[A-Z0-9]{12}")   # same rule as local_filings; kept here so this module needs no database layer
 
 ROOT = Path(__file__).resolve().parents[3]
 CONFIG_PATH = ROOT / "config" / "nse_filings.yaml"
@@ -257,25 +257,17 @@ def _one(client, cfg: dict, local_dir: str, symbol: str, isin: str, kind: str, n
     return rec
 
 
-def update_filings(session, client, cfg: dict, local_dir: str, *, now: datetime,
-                   symbols: list[str] | None = None, kinds: tuple[str, ...] = ("results", "annual")) -> list[dict]:
-    """Download missing quarterly results and annual reports for every company with an NSE code.
-    One result per symbol and kind: {symbol, isin, kind, status: written|unchanged|nodata|blocked|error,
-    files, error}. A NseBlocked affects every company, so it ends the run: the rest come back `blocked`."""
-    from sqlalchemy import select
-
-    from ier.db.models import Instrument
-    q = select(Instrument).where(Instrument.nse_code.is_not(None))
-    wanted = [s.strip().upper() for s in (symbols or []) if s.strip()]
-    if wanted:
-        q = q.where(Instrument.nse_code.in_(wanted))
-    inst = {i.nse_code: i.isin for i in session.scalars(q.order_by(Instrument.nse_code))}
+def update_filings_for(inst: dict[str, str], client, cfg: dict, local_dir: str, *, now: datetime,
+                       kinds: tuple[str, ...] = ("results", "annual"), unknown: tuple[str, ...] = ()) -> list[dict]:
+    """The download loop for explicit {NSE symbol: ISIN} pairs; no database. One result per symbol and
+    kind: {symbol, isin, kind, status: written|unchanged|nodata|blocked|error, files, error}. A NseBlocked
+    affects every company, so it ends the run: the rest come back `blocked`. `unknown` symbols are
+    reported as errors."""
     results: list[dict] = []
-    for s in wanted:
-        if s not in inst:
-            for kind in kinds:
-                results.append({"symbol": s, "isin": None, "kind": kind, "status": "error", "files": 0,
-                                "error": "not in the instruments table"})
+    for s in unknown:
+        for kind in kinds:
+            results.append({"symbol": s, "isin": None, "kind": kind, "status": "error", "files": 0,
+                            "error": "not in the instruments table"})
     blocked = None
     for symbol, isin in inst.items():
         for kind in kinds:
@@ -290,3 +282,63 @@ def update_filings(session, client, cfg: dict, local_dir: str, *, now: datetime,
             except (NseError, OSError) as exc:
                 results.append({"symbol": symbol, "isin": isin, "kind": kind, "status": "error", "files": 0, "error": str(exc)})
     return results
+
+
+def update_filings(session, client, cfg: dict, local_dir: str, *, now: datetime,
+                   symbols: list[str] | None = None, kinds: tuple[str, ...] = ("results", "annual")) -> list[dict]:
+    """Download missing quarterly results and annual reports for every company with an NSE code
+    (the instruments table decides which). See update_filings_for for the result shape."""
+    from sqlalchemy import select
+
+    from ier.db.models import Instrument
+    q = select(Instrument).where(Instrument.nse_code.is_not(None))
+    wanted = [s.strip().upper() for s in (symbols or []) if s.strip()]
+    if wanted:
+        q = q.where(Instrument.nse_code.in_(wanted))
+    inst = {i.nse_code: i.isin for i in session.scalars(q.order_by(Instrument.nse_code))}
+    unknown = tuple(s for s in wanted if s not in inst)
+    return update_filings_for(inst, client, cfg, local_dir, now=now, kinds=kinds, unknown=unknown)
+
+
+# --- standalone mode (python -m ier.tools.nse_filings): for a home connection, no database --------
+
+def _parse_pairs(text: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        sym, sep, isin = part.partition("=")
+        sym, isin = sym.strip().upper(), isin.strip().upper()
+        if not sep or not sym or not ISIN_RE.fullmatch(isin):
+            raise SystemExit(f"error: {part!r} must look like SYMBOL=ISIN (12 letters/digits), e.g. ITC=INE154A01025")
+        out[sym] = isin
+    if not out:
+        raise SystemExit("error: --isin needs at least one SYMBOL=ISIN pair")
+    return out
+
+
+def main(argv: list[str] | None = None, *, client=None, now: datetime | None = None) -> int:
+    """Download filings for explicit SYMBOL=ISIN pairs into --out, without a database. Meant for a home
+    connection when the server address is blocked; copy the folder to the server afterwards."""
+    import argparse
+    p = argparse.ArgumentParser(prog="python -m ier.tools.nse_filings", description=main.__doc__)
+    p.add_argument("--isin", required=True, help="comma-separated SYMBOL=ISIN pairs, e.g. ITC=INE154A01025,DABUR=INE016A01026")
+    p.add_argument("--out", required=True, help="folder to write <ISIN>/<file>.pdf into (created if missing)")
+    p.add_argument("--kind", choices=("results", "annual", "all"), default="all")
+    a = p.parse_args(argv)
+    pairs = _parse_pairs(a.isin)
+    out = Path(a.out).expanduser()
+    out.mkdir(parents=True, exist_ok=True)
+    kinds = ("results", "annual") if a.kind == "all" else (a.kind,)
+    cfg = load_config()
+    results = update_filings_for(pairs, client or NseFilingsClient(cfg), cfg, str(out),
+                                 now=now or datetime.now().astimezone(), kinds=kinds)
+    for r in results:
+        tail = r["error"] or f"{r['files']} new file(s)"
+        print(f"{r['symbol']:<12} {r['isin'] or '-':<13} {r['kind']:<8} {r['status']:<9} {tail}")
+    return 1 if any(r["status"] in ("blocked", "error") for r in results) else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
