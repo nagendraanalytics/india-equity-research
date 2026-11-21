@@ -25,6 +25,11 @@ spec:
         - name: watcher
           image: ghcr.io/nagendraanalytics/ier-api
           command: ["python", "-m", "ier.runtime", "watch"]
+          env:
+            - name: HOME
+              value: /tmp
+            - name: HF_HOME
+              value: /app/data/.hf-cache
           envFrom:
             - secretRef:
                 name: ier-secrets
