@@ -1,0 +1,6 @@
+isin,nse_code,bse_code,name,exchange,macro_sector,sector,industry,basic_industry
+INE009A01021,INFY,500209,Infosys Limited,NSE,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting
+INE467B01029,TCS,532540,Tata Consultancy Services Limited,NSE,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting
+INE075A01022,WIPRO,507685,Wipro Limited,NSE,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting
+INE860A01027,HCLTECH,532281,HCL Technologies Limited,NSE,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting
+INE669C01036,TECHM,532755,Tech Mahindra Limited,NSE,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting

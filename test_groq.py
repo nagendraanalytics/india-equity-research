@@ -1,0 +1,4 @@
+import os, openai
+c = openai.OpenAI(base_url='https://api.groq.com/openai/v1', api_key=os.environ['IER_LLM_API_KEY'])
+r = c.chat.completions.create(model='openai/gpt-oss-20b', messages=[{'role':'user','content':'Return JSON: {"ok": true}'}], response_format={'type':'json_object'}, max_tokens=500)
+print(r.choices[0].message.content)

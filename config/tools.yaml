@@ -1,0 +1,7 @@
+# Tool layer settings. Free/official sources only; respect site terms and rate limits.
+min_interval_seconds: 1.0   # PLACEHOLDER; minimum gap between requests to the same host
+cache_dir: data/cache       # on-disk response cache (git-ignored), relative to repo root
+# PLACEHOLDER limits (uncalibrated): a response larger than this is refused (not cached, no
+# Source row for a new URL); per-request timeout for fetches made with fetch's own client.
+max_response_bytes: 20971520   # 20 MB
+timeout_seconds: 30

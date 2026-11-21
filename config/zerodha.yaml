@@ -1,0 +1,15 @@
+# Zerodha (Kite Connect) read-only price fetcher. Secrets are NOT stored here: set
+# IER_KITE_API_KEY and IER_KITE_API_SECRET in the environment (no quotes).
+# Needs the paid Kite Connect app (the free Personal app has no data). Personal research use only.
+
+# NSE trading symbols to fetch daily prices for (the companies in your demo).
+symbols: [INFY, TCS, HCLTECH, TECHM, WIPRO]
+
+# Calendar days of daily history to download (the 200-day average needs about 290).
+days: 400
+
+# Where the day's access token is kept (git-ignored; expires at 6 AM IST).
+token_file: data/.kite_token.json
+
+# PLACEHOLDER: minimum gap between historical requests (Kite allows about 3 a second).
+min_gap_seconds: 0.4

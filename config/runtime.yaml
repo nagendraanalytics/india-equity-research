@@ -1,0 +1,31 @@
+# Autonomous runtime settings (spec 4.2a).
+# Tier names; Agent.tier = position in this list (master = 1 ... worker = 6). `segment` (7) and
+# `source` (8) are the data-driver controllers and their live source connections; they hang under
+# the master, are display-only (no effect on any score) and never run LLM calls.
+tiers: [master, macro_sector, sector, industry, company, worker, segment, source]
+
+# A failed job is retried with exponential backoff: base * 2**(attempts-1) seconds,
+# until attempts reaches max_attempts, then it is marked failed.
+retry:   # PLACEHOLDER values
+  max_attempts: 3
+  backoff_base_seconds: 30
+
+# Default worker threads per tier for run_workers (concurrency limit per tier).
+workers:   # PLACEHOLDER values
+  sector: 1
+  industry: 1
+  company: 2
+  segment: 1
+  source: 2
+
+# Worker-tier agents seeded under every company agent (Agent.role; handler registry key).
+worker_roles: [fundamentals, synthesis]
+
+# Recovery of jobs left `running` by a crashed or disconnected worker (requeue_stale): at worker
+# start and then every check_interval_seconds, a job claimed more than after_seconds ago is
+# presumed lost; it counts a failed attempt and is queued again (or failed at max_attempts).
+# PLACEHOLDER values: after_seconds must exceed the longest legitimate job (the per-run
+# model-seconds cap is 1800 s) or a slow job would be run twice.
+stale:
+  after_seconds: 7200
+  check_interval_seconds: 300

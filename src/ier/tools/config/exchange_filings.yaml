@@ -1,0 +1,27 @@
+# Exchange filings connector settings.
+#
+# UNVERIFIED: access to exchange (NSE/BSE) filing files and their terms of use could not be
+# verified when this was written. Before any production use, the owner must confirm that
+# programmatic access is permitted, the real index/file URL scheme, and the rate limits.
+# The URL below is a placeholder that will not resolve; nothing in the tests uses the network.
+#
+# index_url: URL returning a JSON list of filings for one company; "{isin}" is substituted.
+#   Each item: {"url", "filing_type", "period", "published_date" (YYYY-MM-DD, optional)}
+index_url: "https://filings.invalid/index/{isin}.json"   # PLACEHOLDER (UNVERIFIED)
+# allowed_hosts: host -> source tier (1 = official exchange filing, 2 = other reliable).
+# The index URL, every listed filing URL and every redirect hop must be on a listed host;
+# the Source tier recorded for a fetch is the tier listed here (not chosen by the caller).
+# EMPTY = every filing fetch is REFUSED (clear error) until the owner verifies the real
+# exchange hosts and their terms of use and lists them, e.g.
+#   allowed_hosts:
+#     www.bseindia.com: 1
+allowed_hosts: {}
+
+# LOCAL FOLDER MODE (no network): point local_dir at a folder of filings you downloaded.
+# When set, it is used INSTEAD of index_url/allowed_hosts. Layout:
+#   <local_dir>/<ISIN>/<filing_type>__<period>__<YYYY-MM-DD>.pdf   (date optional; .pdf .txt .htm .html)
+#   e.g. data/filings/INE009A01021/results__Q2FY27__2026-10-16.pdf
+# local_tier: source tier given to these files. 1 = official exchange/company filing,
+# 2 = other reliable (the safe default). Tier 3 would make them useless as evidence.
+local_dir: 'C:/projects/india-equity-research/data/filings'
+local_tier: 2

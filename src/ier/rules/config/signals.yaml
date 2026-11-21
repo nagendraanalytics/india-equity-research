@@ -1,0 +1,35 @@
+# Signal rules: map a scorecard to a research label. Labels describe the research picture only;
+# they are not orders and carry no quantity, price or side.
+# EVERY threshold, weight and band edge below is a PLACEHOLDER and uncalibrated. They are to be
+# calibrated by the user (Task 17) before the labels mean anything.
+version: signals-2026.11.1
+
+# Confidence gate. A scorecard whose confidence is listed here (or is missing) gets the label
+# "insufficient evidence" and no other label is considered.
+confidence_gate:
+  insufficient_confidence: [low]   # PLACEHOLDER, uncalibrated
+
+# Weights for combining the long-term and short-term scores. Must be >= 0 with a positive sum.
+# If one of the two scores is missing the other is used alone, even when that other score has a
+# weight of 0 here (the weights only matter when both scores exist).
+weights:
+  long: 0.6    # PLACEHOLDER, uncalibrated
+  short: 0.4   # PLACEHOLDER, uncalibrated
+
+# Bands over the combined 0-100 score. Each edge is inclusive on its lower side:
+#   score >= accumulate_min             -> accumulate
+#   hold_min <= score < accumulate_min  -> hold
+#   reduce_min <= score < hold_min      -> reduce
+#   score < reduce_min                  -> avoid
+bands:
+  accumulate_min: 70   # PLACEHOLDER, uncalibrated
+  hold_min: 50         # PLACEHOLDER, uncalibrated
+  reduce_min: 30       # PLACEHOLDER, uncalibrated
+
+# Red-flag text from the rules engine is quoted verbatim in the explanations; it is not reworded.
+# Scores outside 0-100 are clamped to that range (the explanation says so); NaN and infinite
+# scores are treated as missing.
+# Red-flag cap: when the rules engine found any red flag the label is never better than this.
+# It can only lower a label, never raise one, and it does not touch "insufficient evidence".
+red_flag_cap:
+  max_rating: hold   # PLACEHOLDER, uncalibrated (one of hold, reduce, avoid)

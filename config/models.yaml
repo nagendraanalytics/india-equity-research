@@ -1,0 +1,26 @@
+# LLM router settings. Open-source models only, self-hosted behind an OpenAI-compatible
+# endpoint (Ollama or vLLM). No paid per-token APIs, so limits are compute caps.
+base_url: https://api.groq.com/openai/v1
+
+max_output_tokens: 8192
+
+models:
+  extract: openai/gpt-oss-20b
+  synthesise: openai/gpt-oss-120b
+  reason: openai/gpt-oss-120b
+
+# Caps are checked BEFORE each call; a call is refused once usage >= cap.
+# max_tokens = prompt + completion tokens; max_model_seconds = wall-clock seconds spent in
+# model calls. per_run is summed over ONE JOB (one company's documents, or one sector job) of
+# a run_id: a plan run over many companies gives each company job its own per_run budget.
+# Hitting per_run fails that job only (no retry). per_day is summed over all runs since
+# 00:00 UTC; hitting it stops all workers and reschedules the job to the next UTC midnight.
+# Residual overshoot: each concurrent worker may have one call in flight when a cap is hit.
+# PLACEHOLDER values (uncalibrated): a 32b model on one GPU generates roughly 20-30 tokens/s.
+caps:
+  per_run:
+    max_tokens: 200000
+    max_model_seconds: 1800     # 30 minutes
+  per_day:
+    max_tokens: 1000000
+    max_model_seconds: 7200     # 2 hours

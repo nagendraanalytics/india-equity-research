@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ier"
+version = "0.1.0"
+description = "India equity research agents (decision support, not investment advice)"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "pypdf",
+  "sqlalchemy>=2.1",
+  "alembic",
+  "psycopg[binary]>=3.1",
+  "pgvector",
+  "pyyaml",
+  "httpx",
+  "openai",
+  "pydantic",
+  "sentence-transformers",
+  "langgraph>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"ier.api" = ["config/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+  "live: real model server, real data and a real database; runs only with IER_LIVE=1 (never in the default suite)",
+]

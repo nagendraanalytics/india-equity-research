@@ -1,0 +1,5 @@
+# Read-only HTTP API settings (Task 15).
+# PLACEHOLDER: the staleness threshold below is NOT a researched value. A stock, sector or signal
+# whose stored as-of date is more than this many days old is flagged stale=true. Review and set
+# it deliberately before relying on the flag.
+stale_after_days: 7   # PLACEHOLDER

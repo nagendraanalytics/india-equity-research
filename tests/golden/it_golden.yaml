@@ -1,0 +1,420 @@
+# SYNTHETIC golden set for the IT slice. Every company, ISIN, filing, number and quote below is
+# INVENTED. Nothing here is real data, and this file is NOT the hand-checked real-company golden
+# set the spec asks for (that set is still an OPEN ITEM that only the owner can supply, see
+# tests/golden/RUNBOOK.md).
+#
+# WHAT THESE RANGES ARE (read this before trusting a green run):
+#   * Every benchmark in src/ier/rules/config/it.yaml, the score scale in
+#     ier.rules.engine.score_value, and every weight/band/gate in signals.yaml are PLACEHOLDERS.
+#   * The expected ranges below were derived BY HAND from exactly those placeholders (the
+#     arithmetic is in the comments next to each company). They are therefore a REGRESSION GUARD
+#     for the rules as currently configured (change a benchmark, a weight or a band and these
+#     fail on purpose). They are NOT a validation of investment quality, and they are circular by
+#     construction: the expected values come from the same rules they test.
+#   * The model is a deterministic stub (tests/golden/harness.py). What it "extracts" and
+#     "drafts" is written in this file. So the run proves the plumbing (ingest -> facts -> rules
+#     -> claims -> verifier -> scorecard -> signal, queue, events), not model quality.
+#
+# Hand-arithmetic conventions (from engine.score_value and it.yaml):
+#   score(v) = clamp(50 + 50 * rel, 0, 100); rel = (v - bench) / |bench|, sign flipped when
+#   lower_better.  Benchmarks: operating_margin 22 (higher), attrition 15 (lower),
+#   revenue_growth 10 (higher), debt_equity 0.1 (lower), promoter_pledging 2 (lower),
+#   sector_tailwind 50 (higher, weight 0.25; all others weight 1).
+#   Sub-scores: quality = mean(operating_margin, attrition); growth = revenue_growth;
+#   balance_sheet = debt_equity; governance = promoter_pledging; sector_tailwind = tailwind.
+#   valuation and momentum have no IT rules, so they are always null.
+#   long  (weighted) = operating_margin, revenue_growth, debt_equity (w1 each) + tailwind (w0.25)
+#   short (mean)     = attrition, promoter_pledging
+#   combined = 0.6 * long + 0.4 * short (signals.yaml weights); if one side is missing the other
+#   is used alone.  Bands: >=70 accumulate, >=50 hold, >=30 reduce, else avoid.
+#   Confidence (synthesis.yaml): low if kept distinct evidence chunks < 3 or more than 3 null
+#   sub-scores; high needs <=1 null sub-score, which is unreachable while valuation and
+#   momentum have no rules (2 nulls), so the best reachable value today is "medium".
+#   Red flag: promoter_pledging > 20 -> cap at hold.  Confidence "low" -> insufficient evidence.
+#
+# Shared sector input. One Tier-2 sector document; the stub sector model lists one driver
+# (severity 3, +1) and one risk (severity 2, -1). tailwind_input = clamp(50 + 10*(3*1 + 2*-1))
+# = 60, so the sector_tailwind sub-score = 50 + 50*(60-50)/50 = 60.0 for every company.
+#
+# Range convention: [hand value - 0.5, hand value + 0.5], rounded to 2 places.
+
+macro_sector: Information Technology
+
+sector:
+  name: Software
+  industry: IT Services
+  document:
+    url: https://sectors.invalid/golden/software-outlook.txt
+    title: Synthetic software sector outlook
+    tier: 2
+    text: >-
+      Synthetic Software sector outlook. Demand for cloud migration services is rising across
+      large enterprises. Wage inflation is expected to raise employee costs for IT services firms.
+  drivers:
+    - {text: "Demand for cloud migration services is rising across large enterprises.",
+       find: "Demand for cloud migration services", severity: 3, direction: 1, model_verdict: true}
+  risks:
+    - {text: "Wage inflation is expected to raise employee costs for IT services firms.",
+       find: "Wage inflation is expected", severity: 2, direction: -1, model_verdict: true}
+  expected_tailwind: 60.0
+
+companies:
+
+  # ---------------------------------------------------------------------------------------
+  # 1. STRONG ALL-ROUND -> accumulate
+  #   operating_margin 27.5: rel = 5.5/22 = 0.25            -> 62.5
+  #   revenue_growth   16  : rel = 6/10 = 0.6               -> 80
+  #   debt_equity      0.02: rel = -(0.02-0.1)/0.1 = 0.8    -> 90
+  #   attrition        12  : rel = -(12-15)/15 = 0.2        -> 60
+  #   promoter_pledging 0.5: rel = -(0.5-2)/2 = 0.75        -> 87.5
+  #   quality = (62.5+60)/2 = 61.25; growth 80; balance_sheet 90; governance 87.5; tailwind 60
+  #   long  = (62.5 + 80 + 90 + 0.25*60) / 3.25 = 247.5/3.25 = 76.15
+  #   short = (60 + 87.5)/2 = 73.75
+  #   combined = 0.6*76.15 + 0.4*73.75 = 45.69 + 29.5 = 75.19 -> accumulate (>=70)
+  #   No red flag. Evidence: 5 distinct kept chunks (>=3, <8), nulls = 2 -> medium.
+  #   Also exercises: a Tier-3 forum chunk that claims pledging of 35%. The stub "model" is
+  #   careless and tries to extract it as a fact; it must NOT become a Fact (Tier 3 is never
+  #   evidence), and a claim citing it must be dropped by the verifier.
+  # ---------------------------------------------------------------------------------------
+  - key: one
+    name: Golden IT One Ltd
+    isin: INEGOLD00011
+    nse_code: GOLDONE
+    filings:
+      - slug: results-fy26
+        filing_type: results
+        period: FY26
+        published_date: "2026-05-15"
+        text: "Golden IT One Ltd annual results for FY26. Operating margin was 27.5% of revenue. Revenue growth was 16% over FY25."
+      - slug: workforce-fy26
+        filing_type: operations
+        period: FY26
+        published_date: "2026-05-16"
+        text: "Golden IT One Ltd workforce update for FY26. Annualised attrition was 12% at year end."
+      - slug: balance-fy26
+        filing_type: balance_sheet
+        period: FY26
+        published_date: "2026-05-17"
+        text: "Golden IT One Ltd balance sheet at 31 March 2026. The debt to equity ratio was 0.02."
+      - slug: shareholding-q4fy26
+        filing_type: shareholding
+        period: Q4FY26
+        published_date: "2026-04-20"
+        text: "Golden IT One Ltd shareholding pattern for Q4FY26. Promoter pledging was 0.5% of promoter holding."
+    extra_documents:
+      - {url: "https://press.invalid/golden/one-rating", tier: 2, doc_type: rating_note,
+         title: Rating note, period: FY26,
+         text: "Credit rating agency note on Golden IT One Ltd. The agency assigned its highest short term rating to the company."}
+      - {url: "https://forum.invalid/golden/one-chatter", tier: 3, doc_type: forum_post,
+         title: Forum chatter, period: FY26,
+         text: "Forum post about Golden IT One Ltd. Anonymous users say promoter pledging is 35% and a big deal is coming."}
+    facts:
+      - {metric: operating_margin, value: 27.5, unit: percent, period: FY26, find: "Operating margin was 27.5%"}
+      - {metric: revenue_growth, value: 16, unit: percent, period: FY26, find: "Revenue growth was 16%"}
+      - {metric: attrition, value: 12, unit: percent, period: FY26, find: "Annualised attrition was 12%"}
+      - {metric: debt_equity, value: 0.02, unit: ratio, period: FY26, find: "debt to equity ratio was 0.02"}
+      - {metric: promoter_pledging, value: 0.5, unit: percent, period: Q4FY26, find: "Promoter pledging was 0.5%"}
+      # careless-model attempt to take a number from the Tier-3 chunk: must be refused
+      - {metric: promoter_pledging, value: 35, unit: percent, period: Q4FY26, find: "promoter pledging is 35%", expect_stored: false}
+    claims:
+      - {kind: benefit, text: "Operating margin was 27.5% of revenue at Golden IT One Ltd.", severity: 4, horizon: long,
+         cite: ["Operating margin was 27.5%"], model_verdict: true, expect: kept}
+      - {kind: benefit, text: "Revenue growth was 16% over FY25 at Golden IT One Ltd.", severity: 4, horizon: long,
+         cite: ["Revenue growth was 16%"], model_verdict: true, expect: kept}
+      - {kind: benefit, text: "Golden IT One Ltd annualised attrition was 12% at year end.", severity: 2, horizon: short,
+         cite: ["Annualised attrition was 12%"], expect: kept}
+      - {kind: benefit, text: "Golden IT One Ltd had a debt to equity ratio of 0.02 at 31 March 2026.", severity: 3, horizon: long,
+         cite: ["debt to equity ratio was 0.02"], expect: kept}
+      - {kind: risk, text: "Promoter pledging at Golden IT One Ltd was 0.5% of promoter holding.", severity: 1, horizon: short,
+         cite: ["Promoter pledging was 0.5%"], expect: kept}
+      - {kind: benefit, text: "A credit rating agency assigned Golden IT One Ltd its highest short term rating.", severity: 2, horizon: long,
+         cite: ["assigned its highest short term rating"], expect: kept}
+      - {kind: benefit, text: "Golden IT One Ltd is about to win a big deal.", severity: 3, horizon: short,
+         cite: ["a big deal is coming"], expect: dropped, reason_contains: "tier 3"}
+    expected:
+      sub_scores:
+        quality: [60.75, 61.75]
+        growth: [79.5, 80.5]
+        valuation: null
+        balance_sheet: [89.5, 90.5]
+        governance: [87.0, 88.0]
+        sector_tailwind: [59.5, 60.5]
+        momentum: null
+      long_term: [75.65, 76.65]
+      short_term: [73.25, 74.25]
+      combined: [74.7, 75.7]
+      red_flags: []
+      confidence: medium
+      rating: accumulate
+      capped: false
+
+  # ---------------------------------------------------------------------------------------
+  # 2. MID -> hold
+  #   operating_margin 23  : rel = 1/22 = 0.04545           -> 52.27
+  #   revenue_growth   11  : rel = 0.1                      -> 55
+  #   debt_equity      0.08: rel = -(0.08-0.1)/0.1 = 0.2    -> 60
+  #   attrition        16  : rel = -(16-15)/15 = -0.0667    -> 46.67
+  #   promoter_pledging 1.5: rel = -(1.5-2)/2 = 0.25        -> 62.5
+  #   quality = (52.27+46.67)/2 = 49.47; growth 55; balance_sheet 60; governance 62.5; tailwind 60
+  #   long  = (52.27 + 55 + 60 + 15)/3.25 = 182.27/3.25 = 56.08
+  #   short = (46.67 + 62.5)/2 = 54.58
+  #   combined = 0.6*56.08 + 0.4*54.58 = 33.65 + 21.83 = 55.48 -> hold (50..70)
+  #   Also exercises: an order-wording claim ("Investors should buy ...") the verifier must drop.
+  # ---------------------------------------------------------------------------------------
+  - key: two
+    name: Golden IT Two Ltd
+    isin: INEGOLD00012
+    nse_code: GOLDTWO
+    filings:
+      - slug: results-fy26
+        filing_type: results
+        period: FY26
+        published_date: "2026-05-15"
+        text: "Golden IT Two Ltd annual results for FY26. Operating margin was 23% of revenue. Revenue growth was 11% over FY25."
+      - slug: workforce-fy26
+        filing_type: operations
+        period: FY26
+        published_date: "2026-05-16"
+        text: "Golden IT Two Ltd workforce update for FY26. Annualised attrition was 16% at year end."
+      - slug: balance-fy26
+        filing_type: balance_sheet
+        period: FY26
+        published_date: "2026-05-17"
+        text: "Golden IT Two Ltd balance sheet at 31 March 2026. The debt to equity ratio was 0.08."
+      - slug: shareholding-q4fy26
+        filing_type: shareholding
+        period: Q4FY26
+        published_date: "2026-04-20"
+        text: "Golden IT Two Ltd shareholding pattern for Q4FY26. Promoter pledging was 1.5% of promoter holding."
+    extra_documents: []
+    facts:
+      - {metric: operating_margin, value: 23, unit: percent, period: FY26, find: "Operating margin was 23%"}
+      - {metric: revenue_growth, value: 11, unit: percent, period: FY26, find: "Revenue growth was 11%"}
+      - {metric: attrition, value: 16, unit: percent, period: FY26, find: "Annualised attrition was 16%"}
+      - {metric: debt_equity, value: 0.08, unit: ratio, period: FY26, find: "debt to equity ratio was 0.08"}
+      - {metric: promoter_pledging, value: 1.5, unit: percent, period: Q4FY26, find: "Promoter pledging was 1.5%"}
+    claims:
+      - {kind: benefit, text: "Operating margin was 23% of revenue at Golden IT Two Ltd.", severity: 3, horizon: long,
+         cite: ["Operating margin was 23%"], model_verdict: true, expect: kept}
+      - {kind: risk, text: "Golden IT Two Ltd annualised attrition was 16% at year end.", severity: 3, horizon: short,
+         cite: ["Annualised attrition was 16%"], expect: kept}
+      - {kind: benefit, text: "Golden IT Two Ltd had a debt to equity ratio of 0.08 at 31 March 2026.", severity: 2, horizon: long,
+         cite: ["debt to equity ratio was 0.08"], expect: kept}
+      - {kind: risk, text: "Promoter pledging at Golden IT Two Ltd was 1.5% of promoter holding.", severity: 2, horizon: short,
+         cite: ["Promoter pledging was 1.5%"], expect: kept}
+      - {kind: benefit, text: "Investors should buy Golden IT Two Ltd shares now.", severity: 3, horizon: long,
+         cite: ["Operating margin was 23%"], expect: dropped, reason_contains: "wording"}
+    expected:
+      sub_scores:
+        quality: [48.97, 49.97]
+        growth: [54.5, 55.5]
+        valuation: null
+        balance_sheet: [59.5, 60.5]
+        governance: [62.0, 63.0]
+        sector_tailwind: [59.5, 60.5]
+        momentum: null
+      long_term: [55.58, 56.58]
+      short_term: [54.08, 55.08]
+      combined: [54.98, 55.98]
+      red_flags: []
+      confidence: medium
+      rating: hold
+      capped: false
+
+  # ---------------------------------------------------------------------------------------
+  # 3. WEAK -> reduce
+  #   operating_margin 18  : rel = -4/22 = -0.1818          -> 40.91
+  #   revenue_growth   5   : rel = -0.5                     -> 25
+  #   debt_equity      0.12: rel = -(0.12-0.1)/0.1 = -0.2   -> 40
+  #   attrition        18  : rel = -(18-15)/15 = -0.2       -> 40
+  #   promoter_pledging 3  : rel = -(3-2)/2 = -0.5          -> 25  (3 < 20, so no red flag)
+  #   quality = (40.91+40)/2 = 40.45; growth 25; balance_sheet 40; governance 25; tailwind 60
+  #   long  = (40.91 + 25 + 40 + 15)/3.25 = 120.91/3.25 = 37.20
+  #   short = (40 + 25)/2 = 32.5
+  #   combined = 0.6*37.20 + 0.4*32.5 = 22.32 + 13.0 = 35.32 -> reduce (30..50)
+  #   The "avoid" band (<30) is not hit by any golden company; it is unit-tested in tests/signals.
+  #   Also exercises: a claim not supported by its cited chunk (invented contract) -> dropped.
+  # ---------------------------------------------------------------------------------------
+  - key: three
+    name: Golden IT Three Ltd
+    isin: INEGOLD00013
+    nse_code: GOLDTHR
+    filings:
+      - slug: results-fy26
+        filing_type: results
+        period: FY26
+        published_date: "2026-05-15"
+        text: "Golden IT Three Ltd annual results for FY26. Operating margin was 18% of revenue. Revenue growth was 5% over FY25."
+      - slug: workforce-fy26
+        filing_type: operations
+        period: FY26
+        published_date: "2026-05-16"
+        text: "Golden IT Three Ltd workforce update for FY26. Annualised attrition was 18% at year end."
+      - slug: balance-fy26
+        filing_type: balance_sheet
+        period: FY26
+        published_date: "2026-05-17"
+        text: "Golden IT Three Ltd balance sheet at 31 March 2026. The debt to equity ratio was 0.12."
+      - slug: shareholding-q4fy26
+        filing_type: shareholding
+        period: Q4FY26
+        published_date: "2026-04-20"
+        text: "Golden IT Three Ltd shareholding pattern for Q4FY26. Promoter pledging was 3% of promoter holding."
+    extra_documents: []
+    facts:
+      - {metric: operating_margin, value: 18, unit: percent, period: FY26, find: "Operating margin was 18%"}
+      - {metric: revenue_growth, value: 5, unit: percent, period: FY26, find: "Revenue growth was 5%"}
+      - {metric: attrition, value: 18, unit: percent, period: FY26, find: "Annualised attrition was 18%"}
+      - {metric: debt_equity, value: 0.12, unit: ratio, period: FY26, find: "debt to equity ratio was 0.12"}
+      - {metric: promoter_pledging, value: 3, unit: percent, period: Q4FY26, find: "Promoter pledging was 3%"}
+    claims:
+      - {kind: risk, text: "Revenue growth was 5% over FY25 at Golden IT Three Ltd.", severity: 4, horizon: long,
+         cite: ["Revenue growth was 5%"], model_verdict: true, expect: kept}
+      - {kind: risk, text: "Golden IT Three Ltd annualised attrition was 18% at year end.", severity: 3, horizon: short,
+         cite: ["Annualised attrition was 18%"], expect: kept}
+      - {kind: risk, text: "Golden IT Three Ltd had a debt to equity ratio of 0.12 at 31 March 2026.", severity: 2, horizon: long,
+         cite: ["debt to equity ratio was 0.12"], expect: kept}
+      - {kind: risk, text: "Promoter pledging at Golden IT Three Ltd was 3% of promoter holding.", severity: 2, horizon: short,
+         cite: ["Promoter pledging was 3%"], expect: kept}
+      - {kind: benefit, text: "Golden IT Three Ltd won a large multi year European banking outsourcing contract worth 500 million.", severity: 4, horizon: long,
+         cite: ["Operating margin was 18%"], expect: dropped, reason_contains: "not supported"}
+    expected:
+      sub_scores:
+        quality: [39.95, 40.95]
+        growth: [24.5, 25.5]
+        valuation: null
+        balance_sheet: [39.5, 40.5]
+        governance: [24.5, 25.5]
+        sector_tailwind: [59.5, 60.5]
+        momentum: null
+      long_term: [36.7, 37.7]
+      short_term: [32.0, 33.0]
+      combined: [34.82, 35.82]
+      red_flags: []
+      confidence: medium
+      rating: reduce
+      capped: false
+
+  # ---------------------------------------------------------------------------------------
+  # 4. RED FLAG, otherwise high score -> capped at hold
+  #   operating_margin 38  : rel = 16/22 = 0.7273           -> 86.36
+  #   revenue_growth   20  : rel = 1.0                      -> 100
+  #   debt_equity      0.01: rel = -(0.01-0.1)/0.1 = 0.9    -> 95
+  #   attrition        5   : rel = -(5-15)/15 = 0.6667      -> 83.33
+  #   promoter_pledging 22 : rel = -(22-2)/2 = -10          -> clamped to 0   (22 > 20: RED FLAG)
+  #   quality = (86.36+83.33)/2 = 84.85; growth 100; balance_sheet 95; governance 0; tailwind 60
+  #   long  = (86.36 + 100 + 95 + 15)/3.25 = 296.36/3.25 = 91.19
+  #   short = (83.33 + 0)/2 = 41.67
+  #   combined = 0.6*91.19 + 0.4*41.67 = 54.71 + 16.67 = 71.38 -> accumulate band (>=70) ...
+  #   ... but the red-flag cap (signals.yaml: max_rating hold) limits the label to hold.
+  #   Red flag text (it.yaml, "{value:g}" and "{threshold:g}"): "High promoter pledging: 22%
+  #   exceeds 20%". Also exercises: a claim that reaches the model check and is judged
+  #   unsupported -> dropped.
+  # ---------------------------------------------------------------------------------------
+  - key: four
+    name: Golden IT Four Ltd
+    isin: INEGOLD00014
+    nse_code: GOLDFOU
+    filings:
+      - slug: results-fy26
+        filing_type: results
+        period: FY26
+        published_date: "2026-05-15"
+        text: "Golden IT Four Ltd annual results for FY26. Operating margin was 38% of revenue. Revenue growth was 20% over FY25."
+      - slug: workforce-fy26
+        filing_type: operations
+        period: FY26
+        published_date: "2026-05-16"
+        text: "Golden IT Four Ltd workforce update for FY26. Annualised attrition was 5% at year end."
+      - slug: balance-fy26
+        filing_type: balance_sheet
+        period: FY26
+        published_date: "2026-05-17"
+        text: "Golden IT Four Ltd balance sheet at 31 March 2026. The debt to equity ratio was 0.01."
+      - slug: shareholding-q4fy26
+        filing_type: shareholding
+        period: Q4FY26
+        published_date: "2026-04-20"
+        text: "Golden IT Four Ltd shareholding pattern for Q4FY26. Promoter pledging was 22% of promoter holding."
+    extra_documents: []
+    facts:
+      - {metric: operating_margin, value: 38, unit: percent, period: FY26, find: "Operating margin was 38%"}
+      - {metric: revenue_growth, value: 20, unit: percent, period: FY26, find: "Revenue growth was 20%"}
+      - {metric: attrition, value: 5, unit: percent, period: FY26, find: "Annualised attrition was 5%"}
+      - {metric: debt_equity, value: 0.01, unit: ratio, period: FY26, find: "debt to equity ratio was 0.01"}
+      - {metric: promoter_pledging, value: 22, unit: percent, period: Q4FY26, find: "Promoter pledging was 22%"}
+    claims:
+      - {kind: benefit, text: "Revenue growth was 20% over FY25 at Golden IT Four Ltd.", severity: 4, horizon: long,
+         cite: ["Revenue growth was 20%"], model_verdict: true, expect: kept}
+      - {kind: benefit, text: "Golden IT Four Ltd annualised attrition was 5% at year end.", severity: 2, horizon: short,
+         cite: ["Annualised attrition was 5%"], expect: kept}
+      - {kind: benefit, text: "Golden IT Four Ltd had a debt to equity ratio of 0.01 at 31 March 2026.", severity: 3, horizon: long,
+         cite: ["debt to equity ratio was 0.01"], expect: kept}
+      - {kind: risk, text: "Promoter pledging at Golden IT Four Ltd was 22% of promoter holding.", severity: 5, horizon: short,
+         cite: ["Promoter pledging was 22%"], expect: kept}
+      - {kind: benefit, text: "Operating margin at Golden IT Four Ltd was 38% of revenue and will keep expanding.", severity: 3, horizon: long,
+         cite: ["Operating margin was 38%"], model_verdict: false, expect: dropped, reason_contains: "model check"}
+    expected:
+      sub_scores:
+        quality: [84.35, 85.35]
+        growth: [99.5, 100.0]
+        valuation: null
+        balance_sheet: [94.5, 95.5]
+        governance: [0.0, 0.5]
+        sector_tailwind: [59.5, 60.5]
+        momentum: null
+      long_term: [90.69, 91.69]
+      short_term: [41.17, 42.17]
+      combined: [70.88, 71.88]
+      uncapped_rating: accumulate
+      red_flags: ["High promoter pledging: 22% exceeds 20%"]
+      confidence: medium
+      rating: hold
+      capped: true
+
+  # ---------------------------------------------------------------------------------------
+  # 5. THIN EVIDENCE -> insufficient evidence
+  #   Only one filing (one chunk) and only two facts.
+  #   operating_margin 30: rel = 8/22 = 0.3636              -> 68.18
+  #   revenue_growth   15: rel = 0.5                        -> 75
+  #   attrition, debt_equity, promoter_pledging: no facts -> missing
+  #   quality = 68.18 (operating_margin alone); growth 75; balance_sheet null; governance null;
+  #   sector_tailwind 60; valuation null; momentum null  -> 4 nulls > max_none_sub_scores (3)
+  #   long  = (68.18 + 75 + 15)/2.25 = 158.18/2.25 = 70.30
+  #   short = null (no short-horizon rule has data) -> combined uses long alone = 70.30
+  #   70.30 would be "accumulate", but confidence is low (1 distinct chunk < 3, 4 nulls > 3),
+  #   so the gate returns "insufficient evidence" and no other label is considered.
+  # ---------------------------------------------------------------------------------------
+  - key: five
+    name: Golden IT Five Ltd
+    isin: INEGOLD00015
+    nse_code: GOLDFIV
+    filings:
+      - slug: results-fy26
+        filing_type: results
+        period: FY26
+        published_date: "2026-05-15"
+        text: "Golden IT Five Ltd annual results for FY26. Operating margin was 30% of revenue. Revenue growth was 15% over FY25."
+    extra_documents: []
+    facts:
+      - {metric: operating_margin, value: 30, unit: percent, period: FY26, find: "Operating margin was 30%"}
+      - {metric: revenue_growth, value: 15, unit: percent, period: FY26, find: "Revenue growth was 15%"}
+    claims:
+      - {kind: benefit, text: "Operating margin was 30% of revenue at Golden IT Five Ltd.", severity: 3, horizon: long,
+         cite: ["Operating margin was 30%"], model_verdict: true, expect: kept}
+    expected:
+      sub_scores:
+        quality: [67.68, 68.68]
+        growth: [74.5, 75.5]
+        valuation: null
+        balance_sheet: null
+        governance: null
+        sector_tailwind: [59.5, 60.5]
+        momentum: null
+      long_term: [69.8, 70.8]
+      short_term: null
+      combined: [69.8, 70.8]
+      red_flags: []
+      confidence: low
+      rating: insufficient evidence
+      capped: false

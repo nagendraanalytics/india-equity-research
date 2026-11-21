@@ -1,0 +1,4 @@
+# Universe screening thresholds
+min_avg_daily_value: 10000000  # INR (1 crore)
+excluded_statuses:
+  - suspended

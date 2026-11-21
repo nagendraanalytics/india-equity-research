@@ -1,0 +1,68 @@
+version: pharma-2026.11.1
+# Indian pharma (NSE macro sector "Healthcare"). Benchmarks below are PLACEHOLDER, uncalibrated
+# industry medians; none of this has been backtested. Metrics with no data score None and lower
+# confidence rather than guessing. sector_tailwind is fed by the sector agent as for IT.
+rules:
+  - metric: operating_margin        # percent (EBITDA margin as filed)
+    comparison: higher_better
+    benchmark: 24.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: quality
+  - metric: rnd_intensity           # R&D as percent of sales
+    comparison: higher_better
+    benchmark: 7.0  # PLACEHOLDER, uncalibrated
+    weight: 0.5
+    horizon: long
+    sub_score: quality
+  - metric: usfda_observations      # Form 483 observations in the period (count)
+    comparison: lower_better
+    benchmark: 3.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: quality
+  - metric: revenue_growth          # percent, YoY
+    comparison: higher_better
+    benchmark: 10.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: growth
+  - metric: debt_equity             # ratio
+    comparison: lower_better
+    benchmark: 0.3  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: long
+    sub_score: balance_sheet
+  - metric: promoter_pledging       # percent of promoter holding pledged
+    comparison: lower_better
+    benchmark: 2.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: governance
+  - metric: sector_tailwind         # 0-100, from the sector agent
+    comparison: higher_better
+    benchmark: 50.0  # PLACEHOLDER, uncalibrated (50 = neutral sector view)
+    weight: 0.25
+    horizon: long
+    sub_score: sector_tailwind
+  - metric: price_vs_sma200
+    comparison: higher_better
+    benchmark: 10.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: momentum
+  - metric: momentum_3m
+    comparison: higher_better
+    benchmark: 10.0  # PLACEHOLDER, uncalibrated
+    weight: 1.0
+    horizon: short
+    sub_score: momentum
+red_flags:
+  - metric: promoter_pledging
+    operator: gt
+    threshold: 20.0
+    message: "High promoter pledging: {value:g}% exceeds {threshold:g}%"
+  - metric: usfda_observations
+    operator: gt
+    threshold: 8.0
+    message: "Many USFDA observations: {value:g} exceeds {threshold:g}"

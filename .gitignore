@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+data/
+env.local.bat
+*.zip
+*.bak
+.pytest_cache/
+.superpowers/

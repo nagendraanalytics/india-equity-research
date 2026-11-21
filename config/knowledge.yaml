@@ -1,0 +1,5 @@
+# Knowledge store settings. Embeddings are local/open-source (sentence-transformers); no paid APIs.
+# The model must output EMBEDDING_DIM (768) dimensions; changing dimension needs a migration.
+embedding_model: BAAI/bge-base-en-v1.5
+chunk_max_chars: 1200
+chunk_overlap_chars: 150

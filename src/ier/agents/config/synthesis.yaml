@@ -1,0 +1,104 @@
+# Thresholds for the claim verifier and scorecard confidence. Validated at load time.
+verifier:
+  # Share of a claim's content words (stopwords removed) that must appear in the text of its
+  # cited chunks. Below overlap_low: dropped. At or above overlap_high: kept. In between
+  # (borderline): an `extract`-role model check decides; any failure there drops the claim.
+  overlap_low: 0.4
+  overlap_high: 0.75
+  # Claims with fewer content tokens (words, negations, numbers) never take the no-model
+  # fast path; the model checks them.
+  min_content_tokens: 4
+  # Order verbs and instructions addressed to the reader. Matched on word boundaries,
+  # case-insensitive. A claim whose text matches any entry is dropped.
+  # Whitelist rule (fails closed at chunk level): a claim is kept without a model call only
+  # if neither the claim nor the WHOLE TEXT of its best cited chunk contains any negation or
+  # direction word. Anything with such a word goes to the model check. Config words and text
+  # tokens go through the same stemmer, which does not map nouns to verbs: list every form
+  # you want covered (e.g. both "expanded" and "expansion"). n't forms and "cannot" are read
+  # as "not" ("no longer" is covered by "no"). Every entry is quoted (YAML would read no/on/
+  # off as booleans). Entries that are stopwords are rejected at load.
+  negation_words: ["not", "no", "never", "without", "nor", "neither", "none", "cannot",
+                   "nothing", "fail", "fails", "failed", "failing", "failure", "unable",
+                   "lack", "lacks", "lacked", "lacking", "nil", "absent", "absence",
+                   "withdrawn", "withdraw", "withdrew", "retract", "retracted", "incorrect",
+                   "unaudited"]
+  direction_words:
+    up: ["up", "rose", "rise", "rises", "rising", "risen", "grew", "grow", "grows", "growing",
+         "growth", "increase", "increases", "increased", "increasing", "increment", "increments",
+         "higher", "gain", "gains", "gained", "improve", "improves", "improved", "improving",
+         "improvement", "improvements", "expand", "expands", "expanded", "expanding",
+         "expansion", "expansions", "surge", "surged", "jump", "jumped", "climb", "climbed",
+         "accelerate", "accelerated", "strengthen", "strengthened", "raise", "raised",
+         "raises", "raising", "hike", "hikes", "hiked", "hiking", "boost", "boosts", "boosted",
+         "beat", "beats", "outpace", "outpaced", "outperform", "outperformed", "double",
+         "doubled", "doubling", "rebound", "rebounded", "recover", "recovered", "recovery",
+         "recoveries", "upturn", "uptick"]
+    down: ["down", "fell", "fall", "falls", "falling", "fallen", "declined", "decline", "declines",
+           "declining", "decrease", "decreases", "decreased", "decreasing", "lower", "lowered",
+           "loss", "losses", "lost", "worsen", "worsened", "deteriorate", "deteriorated",
+           "deterioration", "contract", "contracted", "contraction", "contractions", "narrow",
+           "narrowed", "drop", "drops", "dropped", "slump", "slumped", "weaken", "weakened",
+           "slow", "slowed", "slowdown", "dip", "dipped", "shrink", "shrank", "shrunk", "reduce",
+           "reduced", "reduces", "reducing", "reduction", "reductions", "cut", "cuts",
+           "cutting", "halve", "halved", "halving", "miss", "missed", "misses", "lag", "lags",
+           "lagged", "lagging", "underperform", "underperformed", "plunge", "plunged",
+           "reverse", "reversed", "reversal", "downturn", "shortfall"]
+    # No change is still a statement about direction: "flat" vs "rebounded" must reach the model.
+    flat: ["flat", "unchanged", "stable", "stagnant", "stagnated", "stagnation", "steady",
+           "stagnate"]
+  # Phrases below are hits anywhere in the text. Matching is case-insensitive and respects
+  # word and hyphen boundaries ("buy-back", "short-term" are not hits).
+  denylist:
+    - buy
+    - sell
+    - short it
+    - short the stock
+    - short this
+    - short-sell
+    - book profits
+    - place an order
+    - place a buy order
+    - place a sell order
+    - add to your portfolio
+    - add on dips
+    - stay invested
+    - you should
+    - you must
+    - you need to
+    - investors should
+    - we recommend
+    - i recommend
+    - consider buying
+    - consider selling
+    - go long
+    - exit the stock
+    - exit your position
+    - avoid the stock
+    - hold your position
+    - target price
+    - outperform
+    - underperform
+    - overweight
+    - underweight
+  # Ratings are reserved for signals. These words are a hit only when they open the claim
+  # (an instruction such as "Hold the stock", "Reduce exposure"), not in normal prose
+  # such as "reduced debt" or "accumulated losses".
+  rating_words:
+    - accumulate
+    - hold
+    - reduce
+    - avoid
+    - short
+    - buy
+    - sell
+
+confidence:
+  # low  : fewer than min_evidence_chunks distinct kept evidence chunks, OR more than
+  #        max_none_sub_scores sub-scores are None.
+  # high : at least high_evidence_chunks distinct kept chunks AND at most
+  #        high_max_none_sub_scores None sub-scores.
+  # medium: everything else.
+  min_evidence_chunks: 3
+  max_none_sub_scores: 3
+  high_evidence_chunks: 8
+  high_max_none_sub_scores: 1

@@ -1,0 +1,7 @@
+isin,nse_code,bse_code,name,exchange,macro_sector,sector,industry,basic_industry
+INE009A01021,INFY,,Infosys Limited,NSE,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting
+INE009A01021,,500209,Infosys Limited,BSE,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting
+INE467B01029,TCS,,Tata Consultancy Services Limited,NSE,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting
+INE040A01034,HDFCBANK,,HDFC Bank Limited,NSE,Financial Services,Financial Services,Banks,Private Sector Bank
+INE062A01020,SBIN,,State Bank of India,NSE,Financial Services,Financial Services,Banks,Public Sector Bank
+INE000X01011,,539999,Example Unclassified Limited,BSE,,,,

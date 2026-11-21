@@ -1,0 +1,6 @@
+isin,nse_code,bse_code,name,exchange,macro_sector,sector,industry,basic_industry
+INE044A01036,SUNPHARMA,,Sun Pharmaceutical Industries Limited,NSE,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals
+INE089A01031,DRREDDY,500124,Dr. Reddy's Laboratories Limited,NSE,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals
+INE059A01026,CIPLA,,Cipla Limited,NSE,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals
+INE326A01037,LUPIN,500257,Lupin Limited,NSE,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals
+INE361B01024,DIVISLAB,532488,Divi's Laboratories Limited,NSE,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals

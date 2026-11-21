@@ -1,0 +1,61 @@
+# Data sources feeding the six driver segments (see docs/RUNBOOK). Every source has a live
+# connection status on the Sources page; "Test" runs the check on demand.
+#
+# Everything here is DISPLAY-ONLY: no source or segment changes any score until it has been
+# calibrated (standing rule). Research output, not investment advice.
+#
+# kind:
+#   kite_prices    Zerodha session status (login once a day: python -m ier.runtime kite-login)
+#   local_files    a folder you fill by hand; status = whether files are present and how old
+#   series_csv     a folder of CSVs (Date,Close) you export; loaded into series points
+#   frankfurter    ECB reference FX rates, no key (https://api.frankfurter.dev), end-of-day
+#   fred           FRED macro series, free API key in env IER_FRED_API_KEY
+#   rss_news       Google News RSS per company -> news__rss-google__<date>.txt in the ISIN folder
+#   derived        computed from our own companies' scorecards (no outside call)
+# refresh_minutes: how often the watcher re-runs the source (0 = only on Test)
+# terms: what is known about permission to use the source. UNVERIFIED = confirm before relying on it.
+segments:
+  company:      {name: "Company & fundamentals",  note: "filings, results, prices, ownership"}
+  events:       {name: "Events & announcements",  note: "exchange announcements, corporate actions, regulation"}
+  market_flows: {name: "Market flows",            note: "FII/DII, delivery, index levels, volatility"}
+  sector_peers: {name: "Sector & peers",          note: "peer ranking and sector tone from our own companies"}
+  macro:        {name: "Macro",                   note: "FX, rates, global markets, commodities"}
+  sentiment:    {name: "News & sentiment",        note: "news headlines, social posts, analyst estimate changes"}
+
+sources:
+  - {id: zerodha_prices,   segment: company,      name: "Zerodha Kite daily prices", kind: kite_prices, refresh_minutes: 0,
+     terms: "Personal use only under your Kite Connect subscription; read-only; token expires 06:00 IST daily"}
+  - {id: filings_folder,   segment: company,      name: "Filings and results (your folder)", kind: local_files, refresh_minutes: 5,
+     folder_kinds: ["*"], stale_days: 120,
+     terms: "Files you download yourself from the company / exchange sites"}
+  - {id: announcements,    segment: events,       name: "Exchange announcements (your folder)", kind: local_files, refresh_minutes: 5,
+     folder_kinds: [news], match: "announcements", stale_days: 14,
+     terms: "UNVERIFIED: automated access to NSE/BSE announcement feeds; drop saved announcements by hand"}
+  - {id: corporate_actions, segment: events,      name: "Corporate actions (your folder)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/corporate_actions", stale_days: 30, terms: "Your own export"}
+  - {id: fii_dii,          segment: market_flows, name: "FII / DII net flows (your CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/fii_dii", series: fii_dii_net, stale_days: 5,
+     terms: "UNVERIFIED: export from the NSE/exchange daily statistic page yourself (Date,Close = net crore)"}
+  - {id: nifty_it,         segment: market_flows, name: "Nifty IT index (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/nifty_it", series: nifty_it, stale_days: 5,
+     terms: "Export from the NSE historical index data page yourself (Date,Close)"}
+  - {id: nifty_pharma,     segment: market_flows, name: "Nifty Pharma index (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/nifty_pharma", series: nifty_pharma, stale_days: 5,
+     terms: "Export from the NSE historical index data page yourself (Date,Close)"}
+  - {id: india_vix,        segment: market_flows, name: "India VIX (your NSE CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/india_vix", series: india_vix, stale_days: 5, terms: "Your own NSE export"}
+  - {id: peers_derived,    segment: sector_peers, name: "Peer ranking from our scorecards", kind: derived, refresh_minutes: 30,
+     terms: "Computed locally"}
+  - {id: fx_usdinr,        segment: macro,        name: "USD/INR (ECB reference rate)", kind: frankfurter, refresh_minutes: 360,
+     base: USD, symbol: INR, series: usd_inr, days: 120,
+     terms: "Frankfurter public API, no key, end-of-day ECB rates; best-effort uptime"}
+  - {id: fred_macro,       segment: macro,        name: "US 10-year yield, Fed funds, Nasdaq (FRED)", kind: fred, refresh_minutes: 360,
+     key_env: IER_FRED_API_KEY, series: {us10y: DGS10, fed_funds: DFF, nasdaq: NASDAQCOM, brent: DCOILBRENTEU},
+     terms: "FRED API, free key from fred.stlouisfed.org; follow their terms"}
+  - {id: news_rss,         segment: sentiment,    name: "News headlines (Google News RSS)", kind: rss_news, refresh_minutes: 60,
+     max_items: 15, terms: "UNVERIFIED: confirm Google News RSS terms for your use; headlines only, no article scraping; no Moneycontrol scraping"}
+  - {id: social_x,         segment: sentiment,    name: "X / social posts (your export)", kind: local_files, refresh_minutes: 5,
+     folder_kinds: [social], stale_days: 7,
+     terms: "X API access is paid; until you have it, drop exported posts by hand"}
+  - {id: estimates,        segment: sentiment,    name: "Analyst estimate changes (your CSV)", kind: series_csv, refresh_minutes: 60,
+     folder: "data/sources/estimates", stale_days: 30, terms: "Your own export; no free automated source"}
