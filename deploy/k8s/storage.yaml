@@ -1,0 +1,11 @@
+# Filings, price CSVs, source files, response cache and the Kite token. Mounted at /app/data.
+# The data files are the audit trail, so this volume is the thing to back up.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ier-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi

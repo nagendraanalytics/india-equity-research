@@ -1,0 +1,22 @@
+# Apply once on the server:  kubectl apply -f application.yaml
+# Argo CD then keeps the cluster equal to deploy/k8s in the repo.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ier
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nagendraanalytics/india-equity-research.git
+    targetRevision: main
+    path: deploy/k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ier
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

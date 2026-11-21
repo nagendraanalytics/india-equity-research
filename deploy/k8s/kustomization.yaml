@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ier
+resources:
+  - namespace.yaml
+  - storage.yaml
+  - postgres.yaml
+  - api.yaml
+  - watcher.yaml
+  - dashboard.yaml
+# The release workflow rewrites these tags to the commit it just built (see .github/workflows/release.yml).
+images:
+  - name: ghcr.io/nagendraanalytics/ier-api
+    newTag: latest
+  - name: ghcr.io/nagendraanalytics/ier-dashboard
+    newTag: latest

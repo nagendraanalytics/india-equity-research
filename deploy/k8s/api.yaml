@@ -1,0 +1,64 @@
+# ClusterIP only: no Ingress, no NodePort. The API has no login and POST /agents/{id}/rerun
+# changes state, so it is reached only through an SSH tunnel (deploy/tunnel.bat).
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # the data volume is ReadWriteOnce
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      initContainers:
+        - name: migrate
+          image: ghcr.io/nagendraanalytics/ier-api
+          command: ["python", "-m", "alembic", "upgrade", "head"]
+          envFrom:
+            - secretRef:
+                name: ier-secrets
+      containers:
+        - name: api
+          image: ghcr.io/nagendraanalytics/ier-api
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: ier-secrets
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: {memory: 512Mi, cpu: 100m}
+            limits: {memory: 1536Mi}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ier-data
