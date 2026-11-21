@@ -84,12 +84,10 @@ def test_role_maps_to_configured_model_and_base_url(session, clock, cfg, monkeyp
 
 def test_default_config_loads():
     c = router.load_config()
-    assert c["base_url"] == "http://localhost:11434/v1"
-    assert c["models"] == {
-        "extract": "qwen2.5:14b-instruct",
-        "synthesise": "qwen2.5:14b-instruct",
-        "reason": "qwen2.5:32b-instruct",
-    }
+    # The endpoint and model names are the owner's choice (Ollama, vLLM or Groq); check shape only.
+    assert isinstance(c["base_url"], str) and c["base_url"].startswith("http")
+    assert set(c["models"]) == {"extract", "synthesise", "reason"}
+    assert all(isinstance(m, str) and m for m in c["models"].values())
     assert set(c["caps"]) == {"per_run", "per_day"}
 
 
@@ -263,3 +261,64 @@ def test_per_run_cap_counts_only_the_scoped_agents_usage(session, clock, cfg):
             call(session, clock, FakeClient(clock, ['{"answer": "a"}']), cfg)
     finally:
         session.info.pop(router.CAP_SCOPE_KEY, None)
+
+
+# --- provider rate limits (HTTP 429): wait as asked, then retry the same call ---------------
+
+import httpx
+import openai
+
+
+def _rate_limit(msg="Rate limit reached. Please try again in 14.4225s.", retry_after=None):
+    headers = {"retry-after": retry_after} if retry_after else {}
+    resp = httpx.Response(429, headers=headers,
+                          request=httpx.Request("POST", "https://api.example/v1/chat"))
+    return openai.RateLimitError(msg, response=resp, body=None)
+
+
+class ThrottledClient(FakeClient):
+    """Raises the queued errors first, then answers normally."""
+
+    def __init__(self, clock, errors, contents):
+        super().__init__(clock, contents)
+        self.errors = list(errors)
+
+    def _create(self, **kwargs):
+        if self.errors:
+            self.calls.append(kwargs)
+            raise self.errors.pop(0)
+        return super()._create(**kwargs)
+
+
+def test_retry_after_parses_header_text_and_milliseconds():
+    assert router._retry_after(_rate_limit(retry_after="3")) == 4.0
+    assert router._retry_after(_rate_limit("try again in 14.4225s")) == pytest.approx(15.4225)
+    assert router._retry_after(_rate_limit("Please try again in 250ms.")) == pytest.approx(1.25)
+    assert router._retry_after(_rate_limit("no hint here")) is None
+
+
+def test_rate_limit_waits_then_succeeds_without_logging_failed_usage(session, clock, cfg):
+    client = ThrottledClient(clock, [_rate_limit(), _rate_limit("try again in 2s")],
+                             ['{"answer": "ok"}'])
+    slept = []
+    out = complete("extract", "p", Out, "run-1", session=session, client=client, clock=clock,
+                   config=cfg, sleep=slept.append)
+    assert out.answer == "ok"
+    assert slept == [pytest.approx(15.4225), pytest.approx(3.0)]
+    rows = session.scalars(select(RunLog).where(RunLog.run_id == "run-1")).all()
+    assert len(rows) == 1 and rows[0].model_seconds == 2.0   # only the real call, no wait time
+
+
+def test_rate_limit_without_hint_or_too_long_or_too_often_raises(session, clock, cfg):
+    for err in (_rate_limit("no hint"), _rate_limit("try again in 500s")):
+        client = ThrottledClient(clock, [err], ['{"answer": "x"}'])
+        with pytest.raises(openai.RateLimitError):
+            complete("extract", "p", Out, "run-2", session=session, client=client, clock=clock,
+                     config=cfg, sleep=lambda s: None)
+    many = ThrottledClient(clock, [_rate_limit("try again in 1s")] * (router.MAX_RATE_WAITS + 1),
+                           ['{"answer": "x"}'])
+    slept = []
+    with pytest.raises(openai.RateLimitError):
+        complete("extract", "p", Out, "run-3", session=session, client=many, clock=clock,
+                 config=cfg, sleep=slept.append)
+    assert len(slept) == router.MAX_RATE_WAITS
