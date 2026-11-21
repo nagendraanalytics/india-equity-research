@@ -38,7 +38,7 @@ chown "${APP_USER}:${APP_USER}" "/home/${APP_USER}/.ssh/authorized_keys"
 chmod 600 "/home/${APP_USER}/.ssh/authorized_keys"
 
 echo "==> 4/7 SSH hardening (key-only, no root login)"
-cat > /etc/ssh/sshd_config.d/99-ier.conf <<'EOF'
+cat > /etc/ssh/sshd_config.d/00-ier.conf <<'EOF'
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin no
