@@ -1,0 +1,45 @@
+# Downloads NSE end-of-day prices every weekday evening (python -m ier.runtime nse-prices).
+# 19:15 IST = 13:45 UTC. If NSE refuses the server address the job fails with HTTP 403 and
+# changes nothing; run the command from a home connection and copy the folders instead.
+# To pause it: set `suspend: true`.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nse-prices
+spec:
+  schedule: "45 13 * * 1-5"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: ghcr-pull
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+          containers:
+            - name: nse-prices
+              image: ghcr.io/nagendraanalytics/ier-api
+              command: ["python", "-m", "ier.runtime", "nse-prices"]
+              env:
+                - name: HOME
+                  value: /tmp
+              envFrom:
+                - secretRef:
+                    name: ier-secrets
+              resources:
+                requests: {memory: 256Mi, cpu: 100m}
+                limits: {memory: 512Mi}
+              volumeMounts:
+                - name: data
+                  mountPath: /app/data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: ier-data
