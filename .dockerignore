@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+data
+env.local.bat
+*.zip
+**/__pycache__
+**/node_modules
+**/.next
+.pytest_cache
+.superpowers
+tests
+docs

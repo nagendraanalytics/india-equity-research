@@ -1,0 +1,19 @@
+# Same dependencies as pyproject.toml (the source of truth). Install with:
+#   pip install -r requirements.txt
+# On a server without a GPU, install CPU-only torch first to keep the install small:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+fastapi
+uvicorn
+pypdf
+sqlalchemy>=2.1
+alembic
+psycopg[binary]>=3.1
+pgvector
+pyyaml
+httpx
+openai
+pydantic
+sentence-transformers
+langgraph>=1.0,<2
+# the app itself (editable, so config/ and rule files are found next to the code)
+-e .
