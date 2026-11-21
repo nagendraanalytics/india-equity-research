@@ -7,6 +7,8 @@ resources:
   - postgres.yaml
   - api.yaml
   - watcher.yaml
+  - nse-prices.yaml
+  - nse-filings.yaml
   - dashboard.yaml
   - caddy.yaml
 # The release workflow rewrites these tags to the commit it just built (see .github/workflows/release.yml).

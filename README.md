@@ -44,3 +44,8 @@ algorithm. Algorithm scores reach the final scores only through `blend_weight` i
 `python -m ier.runtime nse-prices` downloads daily prices (first run about 290 trading days, later runs one day)
 into `<local_dir>/<ISIN>/prices__nse__<date>.csv` for every company that has an NSE code. Run it each evening after
 18:30 IST; the watcher then re-runs the changed companies. `kite-prices` (Zerodha) remains an alternative source.
+
+## Filings for the fundamentals
+`python -m ier.runtime nse-filings [--kind results|annual|all]` downloads quarterly results and annual reports from NSE into
+`<local_dir>/<ISIN>/` (the layout `local_filings` reads), skipping files already there. Two CronJobs run it (results daily,
+annual reports weekly). NSE access is unverified and may be blocked from the server; see `docs/PLACEHOLDERS.md`.

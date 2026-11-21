@@ -1,0 +1,23 @@
+# NSE filings download (python -m ier.runtime nse-filings). Every value is optional.
+#
+# UNVERIFIED (all of it): NSE's terms of use for programmatic access, the endpoint paths below and
+# their JSON field names are written from public descriptions and have NOT been checked against the
+# live site. NSE may also block data-centre addresses (HTTP 403, or a web page returned instead of
+# data); the command then stops with status "blocked" and changes nothing. Confirm on the server first:
+#   python -m ier.runtime nse-filings --symbols ITC --kind results
+results_years: 2           # years of quarterly results kept per company
+annual_years: 3            # financial years of annual reports kept per company
+min_gap_seconds: 1.0       # PLACEHOLDER: gap between requests
+max_mb_results: 20         # a bigger file is not saved
+max_mb_annual: 60
+timeout_seconds: 30
+# NSE rejects obviously non-browser clients; change this if the first run is refused.
+# user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+allowed_hosts:             # the ONLY hosts ever requested; redirects are refused
+  - www.nseindia.com
+  - nsearchives.nseindia.com
+  - archives.nseindia.com
+endpoints:                 # UNVERIFIED; "{symbol}" is URL-encoded, "{from}"/"{to}" are DD-MM-YYYY
+  results: "/api/corporates-financial-results?index=equities&symbol={symbol}&period=Quarterly"
+  annual: "/api/annual-reports?index=equities&symbol={symbol}"
+  announcements: "/api/corporate-announcements?index=equities&symbol={symbol}&from_date={from}&to_date={to}"

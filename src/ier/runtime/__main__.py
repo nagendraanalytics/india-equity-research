@@ -167,6 +167,7 @@ def _nse_prices(args, factory, *, client=None, now_fn=None) -> int:
     local_dir = exchange_filings.load_config().get("local_dir")
     if not local_dir:
         sys.exit("error: set local_dir in src/ier/tools/config/exchange_filings.yaml first")
+    Path(local_dir).expanduser().mkdir(parents=True, exist_ok=True)
     symbols = [s for s in args.symbols.split(",") if s.strip()] if args.symbols else None
     if args.loop is not None and args.loop < 5:
         sys.exit("error: --loop must be at least 5 minutes")
@@ -187,6 +188,43 @@ def _nse_prices(args, factory, *, client=None, now_fn=None) -> int:
             print(f"{r['symbol']:<12} {r['isin'] or '-':<13} {r['status']:<9} {tail}")
         if args.loop is None or stop.is_set():
             return 1 if any(r["status"] == "error" for r in results) else 0
+        print(f"next refresh in {args.loop:g} min; Ctrl-C to stop")
+        stop.wait(args.loop * 60)
+        if stop.is_set():
+            return 0
+
+
+def _nse_filings(args, factory, *, client=None, now_fn=None) -> int:
+    """`nse-filings`: download missing quarterly results and annual reports from NSE into each company's
+    folder, once or every --loop minutes. Read-only; prints one line per company and kind."""
+    from ier.tools import exchange_filings, nse_filings
+    now_fn = now_fn or (lambda: datetime.now(timezone.utc))
+    cfg = nse_filings.load_config()
+    local_dir = exchange_filings.load_config().get("local_dir")
+    if not local_dir:
+        sys.exit("error: set local_dir in src/ier/tools/config/exchange_filings.yaml first")
+    Path(local_dir).expanduser().mkdir(parents=True, exist_ok=True)
+    symbols = [s for s in args.symbols.split(",") if s.strip()] if args.symbols else None
+    kinds = ("results", "annual") if args.kind == "all" else (args.kind,)
+    if args.loop is not None and args.loop < 5:
+        sys.exit("error: --loop must be at least 5 minutes")
+    stop = threading.Event()
+    if client is None:
+        signal.signal(signal.SIGINT, lambda *_: stop.set())
+    while True:
+        try:
+            use = client or nse_filings.NseFilingsClient(cfg)
+            with factory() as s:
+                results = nse_filings.update_filings(s, use, cfg, local_dir, now=now_fn(), symbols=symbols, kinds=kinds)
+        except nse_filings.NseError as exc:
+            print(f"error: {exc}")
+            return 1
+        for r in results:
+            tail = r["error"] or f"{r['files']} new file(s)"
+            print(f"{r['symbol']:<12} {r['isin'] or '-':<13} {r['kind']:<8} {r['status']:<9} {tail}")
+        bad = any(r["status"] in ("blocked", "error") for r in results)
+        if args.loop is None or stop.is_set():
+            return 1 if bad else 0
         print(f"next refresh in {args.loop:g} min; Ctrl-C to stop")
         stop.wait(args.loop * 60)
         if stop.is_set():
@@ -225,6 +263,10 @@ def _parser() -> argparse.ArgumentParser:
     npx.add_argument("--symbols", default=None, help="comma-separated NSE symbols (default: every company with an NSE code)")
     npx.add_argument("--days", type=int, default=None, help="calendar days of history for a company with none (default: config)")
     npx.add_argument("--loop", type=float, default=None, metavar="MINUTES", help="repeat every MINUTES (at least 5) until Ctrl-C")
+    nfl = sub.add_parser("nse-filings", help="download quarterly results and annual reports from NSE into each company's folder")
+    nfl.add_argument("--symbols", default=None, help="comma-separated NSE symbols (default: every company with an NSE code)")
+    nfl.add_argument("--kind", choices=("results", "annual", "all"), default="all", help="which filings to fetch (default: all)")
+    nfl.add_argument("--loop", type=float, default=None, metavar="MINUTES", help="repeat every MINUTES (at least 5) until Ctrl-C")
     pt = sub.add_parser("purge-tier3", help="delete Facts from Tier 3 sources (dry run unless --apply)")
     pt.add_argument("--apply", action="store_true", help="really delete (default: dry run)")
     return p
@@ -276,6 +318,8 @@ def main(argv: list[str] | None = None, *, session_factory: Callable[[], Session
         return _kite_prices(args, factory)
     elif args.command == "nse-prices":
         return _nse_prices(args, factory)
+    elif args.command == "nse-filings":
+        return _nse_filings(args, factory)
     elif args.command == "watch":
         from ier.runtime.watch import watch_loop
         from ier.tools import exchange_filings

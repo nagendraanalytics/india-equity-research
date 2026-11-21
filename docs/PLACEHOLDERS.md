@@ -68,3 +68,12 @@ and are refused (`UnsupportedSector`) rather than scored with another sector's r
 from NSE's public end-of-day files. UNVERIFIED: confirm NSE's terms allow this and that the URL scheme is current.
 `publish_after` (18:30 IST) and `min_gap_seconds` (0.6) are guesses. NSE may refuse server addresses (HTTP 403):
 then run it from a home connection and copy the company folders to the server.
+
+## NSE filings download (config/nse_filings.yaml)
+`python -m ier.runtime nse-filings [--symbols A,B] [--kind results|annual|all] [--loop MINUTES]` saves
+`results__Q2FY27__<date>.pdf` and `annual_report__FY2026__<date>.pdf` in each company's folder. ALL of this is UNVERIFIED:
+NSE's terms of use for programmatic access, the three endpoint paths under `endpoints:`, and the JSON field names tried in
+`nse_filings.py` (`URL_KEYS`, `PUBLISHED_KEYS`, `PERIOD_END_KEYS`, `FY_END_YEAR_KEYS`). `min_gap_seconds` (1.0), the
+retention (2 years of results, 3 of annual reports) and the size caps (20 / 60 MB) are guesses. NSE may refuse server
+addresses; the run then prints `blocked` and saves nothing (place the PDFs by hand, or run from a home connection).
+First live check: `python -m ier.runtime nse-filings --symbols ITC --kind results`.

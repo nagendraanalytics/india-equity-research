@@ -1,0 +1,87 @@
+# Downloads NSE quarterly results (weekdays 20:00 IST = 14:30 UTC) and annual reports (Sundays 08:30 IST =
+# 03:00 UTC) into each company's folder: python -m ier.runtime nse-filings --kind results|annual.
+# UNVERIFIED: NSE's terms and endpoints are not confirmed, and NSE may refuse the server address. A refused
+# run exits non-zero (status "blocked") and changes nothing. To pause either job: set `suspend: true`.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nse-filings-results
+spec:
+  schedule: "30 14 * * 1-5"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: ghcr-pull
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+          containers:
+            - name: nse-filings-results
+              image: ghcr.io/nagendraanalytics/ier-api
+              command: ["python", "-m", "ier.runtime", "nse-filings", "--kind", "results"]
+              env:
+                - name: HOME
+                  value: /tmp
+              envFrom:
+                - secretRef:
+                    name: ier-secrets
+              resources:
+                requests: {memory: 256Mi, cpu: 100m}
+                limits: {memory: 512Mi}
+              volumeMounts:
+                - name: data
+                  mountPath: /app/data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: ier-data
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nse-filings-annual
+spec:
+  schedule: "0 3 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: ghcr-pull
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+          containers:
+            - name: nse-filings-annual
+              image: ghcr.io/nagendraanalytics/ier-api
+              command: ["python", "-m", "ier.runtime", "nse-filings", "--kind", "annual"]
+              env:
+                - name: HOME
+                  value: /tmp
+              envFrom:
+                - secretRef:
+                    name: ier-secrets
+              resources:
+                requests: {memory: 256Mi, cpu: 100m}
+                limits: {memory: 512Mi}
+              volumeMounts:
+                - name: data
+                  mountPath: /app/data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: ier-data

@@ -34,3 +34,15 @@ Adds the `algo_scores` table and five nullable columns on `scorecards`
 (`rules_long_score`, `rules_short_score`, `algo_long_score`, `algo_short_score`, `algo_weight`).
 It is additive and reversible (`alembic downgrade 0011`). Run `alembic upgrade head` before starting the new API image.
 Existing companies get algorithm scores on their next run. Keep `blend_weight: 0.0` until backtested.
+
+## Getting code and data onto the server (GitHub flow)
+* **Code and config: GitHub to server (pull).** Push from your Windows folder (`C:\projects\ier-clean`) to `master`. The
+  release workflow builds the image and rewrites the tags in `deploy/k8s/kustomization.yaml`; Argo CD syncs `deploy/k8s`
+  and rolls the pods. Check with `kubectl get pods -n ier` and `kubectl rollout status deploy/api -n ier`.
+  The server never pushes to GitHub; that would need a deploy key on the server, so it is deferred until there is something
+  small worth pushing.
+* **Data stays off git.** Filings, price CSVs and the database live on the `ier-data` volume and in Postgres.
+* **Filings:** the `nse-filings-results` (weekdays) and `nse-filings-annual` (Sundays) CronJobs fill
+  `/app/data/filings/<ISIN>/`. First run by hand to see whether NSE accepts the server address:
+  `kubectl exec -n ier deploy/api -c api -- python -m ier.runtime nse-filings --symbols ITC --kind results`
+  A `blocked` status means NSE refused it; nothing was saved.
