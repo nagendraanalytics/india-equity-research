@@ -49,6 +49,10 @@ from ier.agents.feed_events import analyse_feed, view_payload
 from ier.agents import fundamentals as _fund
 from ier.agents.fundamentals import PHARMA_TOPICS, TOPICS, extract_facts
 from ier.agents.technicals import extract_technicals
+from ier.algos.config import config_sha, load_algo_config
+from ier.algos.runner import run_algorithms
+from ier.algos.series import load_index_bars, load_price_bars
+from ier.algos.store import latest_composite, peer_momentum, save_results
 from ier.agents.sector import analyse_sector, rank_industry
 from ier.agents.synthesis import build_scorecard, draft_claims
 from ier.agents.verifier import verify
@@ -298,6 +302,7 @@ def fingerprint(session: Session, instrument_id: int, listing: list | None,
         "rules_version": str(load_rules(rules_path)["version"]),
         "rules_sha256": hashlib.sha256(raw).hexdigest(),
         "calibration": calibration_marker(),
+        "algos_sha256": config_sha(),
         "tailwind_input": None if tailwind is None else int(round(tailwind)),
         **({"feeds": feeds} if feeds else {}),
     }, sort_keys=True)
@@ -360,10 +365,32 @@ def _node_fundamentals(ctx: _Ctx, state: _State):
     return {"facts": len(facts)}, {"facts": len(facts)}
 
 
+def _run_algos(ctx: _Ctx, source_id: int | None) -> int:
+    """Score the company with the algorithm library and store the results. Never fails the run:
+    a problem here is logged and the company simply has no algorithm scores this time."""
+    try:
+        cfg = load_algo_config()
+        bars, _ = load_price_bars(ctx.isin, ctx.local_dir)
+        if not bars:
+            return 0
+        macro = ctx.session.scalar(select(Instrument.macro_sector).where(Instrument.id == ctx.instrument_id))
+        index_id = cfg["sector_index"].get(macro) if macro else None
+        with ctx.session.begin_nested():
+            results = run_algorithms(
+                bars, ctx.isin, cfg, today=_today(),
+                index_bars=load_index_bars(ctx.session, index_id) if index_id else None,
+                peer_momentum=peer_momentum(ctx.session, macro) if macro else None)
+            return save_results(ctx.session, ctx.instrument_id, bars[-1].day, results, source_id, ctx.run_id)
+    except Exception:  # noqa: BLE001
+        logger.exception("algorithm scoring failed for %s", ctx.isin)
+        return 0
+
+
 def _node_technicals(ctx: _Ctx, state: _State):
     r = extract_technicals(ctx.session, ctx.instrument_id, ctx.isin, ctx.local_dir)
+    n_algos = _run_algos(ctx, r.get("source_id"))
     return {"technicals": r}, {"files": r["files"], "as_of": r["as_of"], "saved": r["saved"],
-                              "metrics": r["metrics"]}
+                              "metrics": r["metrics"], "algorithms": n_algos}
 
 
 def _feed_node(kind: str):
@@ -394,8 +421,14 @@ def _node_verifier(ctx: _Ctx, state: _State):
 
 
 def _node_scorecard(ctx: _Ctx, state: _State):
+    cfg = load_algo_config()
+    try:
+        composite = latest_composite(ctx.session, ctx.instrument_id, cfg)
+    except Exception:  # noqa: BLE001 - algorithms are optional; the rules score stands alone
+        logger.exception("algorithm composite failed for %s", ctx.isin)
+        composite = None
     card = build_scorecard(ctx.session, ctx.instrument_id, state["rule_result"],
-                           state["verified"], _today())
+                           state["verified"], _today(), algo=composite, algo_weight=cfg["blend_weight"])
     return {"scorecard_id": card.id}, {"scorecard_id": card.id}
 
 
