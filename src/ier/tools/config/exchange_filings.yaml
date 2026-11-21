@@ -23,5 +23,6 @@ allowed_hosts: {}
 #   e.g. data/filings/INE009A01021/results__Q2FY27__2026-10-16.pdf
 # local_tier: source tier given to these files. 1 = official exchange/company filing,
 # 2 = other reliable (the safe default). Tier 3 would make them useless as evidence.
-local_dir: 'C:/projects/india-equity-research/data/filings'
+local_dir: 'data/filings'
 local_tier: 2
+
