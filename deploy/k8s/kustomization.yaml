@@ -12,6 +12,6 @@ resources:
 # The release workflow rewrites these tags to the commit it just built (see .github/workflows/release.yml).
 images:
   - name: ghcr.io/nagendraanalytics/ier-api
-    newTag: latest
+    newTag: e886968eaa60718ed22a69a0f06fe89c36983c41
   - name: ghcr.io/nagendraanalytics/ier-dashboard
-    newTag: latest
+    newTag: e886968eaa60718ed22a69a0f06fe89c36983c41
