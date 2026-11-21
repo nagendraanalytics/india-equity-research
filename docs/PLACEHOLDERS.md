@@ -51,3 +51,20 @@ Residuals that are not values but you should know (see the module docstrings):
 every `rules[].benchmark` and `weight` is an uncalibrated guess, like it.yaml and pharma.yaml. Check each
 metric and benchmark per sector before relying on a score. "Services" and "Diversified" have no rule set
 and are refused (`UnsupportedSector`) rather than scored with another sector's rules.
+
+## Algorithm library added 2026-11 (all uncalibrated)
+
+`config/algos.yaml`:
+* `blend_weight` (default 0, code hard cap 0.30): share of the final long/short score taken from algorithms.
+  Leave at 0 until you have backtested the algorithms; at 0 the final scores equal the rules scores exactly.
+* `max_stale_days` (10): a last price older than this blanks every algorithm for the stock.
+* `algos.<id>: {worst, best}`: per-algorithm score bands (a value at `worst` scores 0, at `best` scores 100).
+  The built-in bands are guesses, not calibrated against outcomes. Override them here per algorithm.
+* The composite is an equal-weight average of the algorithms that have a score. Weights are not tuned.
+* The 8 `value_quality` algorithms are phase-2 stubs: they need fundamentals and show "needs ..." with no score.
+
+## NSE price download (config/nse_prices.yaml)
+`python -m ier.runtime nse-prices [--symbols A,B] [--days N] [--loop MINUTES]` writes `prices__nse__<date>.csv` per company
+from NSE's public end-of-day files. UNVERIFIED: confirm NSE's terms allow this and that the URL scheme is current.
+`publish_after` (18:30 IST) and `min_gap_seconds` (0.6) are guesses. NSE may refuse server addresses (HTTP 403):
+then run it from a home connection and copy the company folders to the server.

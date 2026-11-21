@@ -158,6 +158,41 @@ def _kite_prices(args, factory, *, client=None, now_fn=None) -> int:
             return 0
 
 
+def _nse_prices(args, factory, *, client=None, now_fn=None) -> int:
+    """`nse-prices`: bring every company's daily price file up to date from NSE's public end-of-day files,
+    once or every --loop minutes. Read-only; prints one line per company."""
+    from ier.tools import exchange_filings, nse_prices
+    now_fn = now_fn or (lambda: datetime.now(timezone.utc))
+    cfg = nse_prices.load_config()
+    local_dir = exchange_filings.load_config().get("local_dir")
+    if not local_dir:
+        sys.exit("error: set local_dir in src/ier/tools/config/exchange_filings.yaml first")
+    symbols = [s for s in args.symbols.split(",") if s.strip()] if args.symbols else None
+    if args.loop is not None and args.loop < 5:
+        sys.exit("error: --loop must be at least 5 minutes")
+    stop = threading.Event()
+    if client is None:
+        signal.signal(signal.SIGINT, lambda *_: stop.set())
+    while True:
+        try:
+            use = client or nse_prices.NseClient(min_gap=float(cfg["min_gap_seconds"]), user_agent=cfg["user_agent"],
+                                                 timeout=float(cfg["timeout_seconds"]))
+            with factory() as s:
+                results = nse_prices.update_prices(s, use, cfg, local_dir, now=now_fn(), symbols=symbols, days=args.days)
+        except nse_prices.NseError as exc:
+            print(f"error: {exc}")
+            return 1
+        for r in results:
+            tail = r["error"] or f"{r['rows']} rows, as of {r['asof']}"
+            print(f"{r['symbol']:<12} {r['isin'] or '-':<13} {r['status']:<9} {tail}")
+        if args.loop is None or stop.is_set():
+            return 1 if any(r["status"] == "error" for r in results) else 0
+        print(f"next refresh in {args.loop:g} min; Ctrl-C to stop")
+        stop.wait(args.loop * 60)
+        if stop.is_set():
+            return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python -m ier.runtime", description=__doc__.split("\n\n")[0])
     sub = p.add_subparsers(dest="command", required=True)
@@ -186,6 +221,10 @@ def _parser() -> argparse.ArgumentParser:
                     help="include today's unfinished candle (every change re-runs the company: costs model tokens)")
     kp.add_argument("--loop", type=float, default=None, metavar="MINUTES",
                     help="repeat every MINUTES (at least 5) until Ctrl-C")
+    npx = sub.add_parser("nse-prices", help="download daily prices from NSE's public end-of-day files into each company's folder")
+    npx.add_argument("--symbols", default=None, help="comma-separated NSE symbols (default: every company with an NSE code)")
+    npx.add_argument("--days", type=int, default=None, help="calendar days of history for a company with none (default: config)")
+    npx.add_argument("--loop", type=float, default=None, metavar="MINUTES", help="repeat every MINUTES (at least 5) until Ctrl-C")
     pt = sub.add_parser("purge-tier3", help="delete Facts from Tier 3 sources (dry run unless --apply)")
     pt.add_argument("--apply", action="store_true", help="really delete (default: dry run)")
     return p
@@ -235,6 +274,8 @@ def main(argv: list[str] | None = None, *, session_factory: Callable[[], Session
         return zerodha.login_flow(os.environ, zerodha.load_config())
     elif args.command == "kite-prices":
         return _kite_prices(args, factory)
+    elif args.command == "nse-prices":
+        return _nse_prices(args, factory)
     elif args.command == "watch":
         from ier.runtime.watch import watch_loop
         from ier.tools import exchange_filings

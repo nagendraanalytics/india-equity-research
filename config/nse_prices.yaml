@@ -1,0 +1,6 @@
+# NSE end-of-day price download (python -m ier.runtime nse-prices). Every value is optional.
+# UNVERIFIED: confirm NSE's terms of use allow this before relying on it; NSE may block server addresses.
+days: 400                # calendar days of history for a company with no price file yet
+min_gap_seconds: 0.6     # PLACEHOLDER: gap between requests
+publish_after: "18:30"   # PLACEHOLDER: IST time after which the day's file is normally published
+# user_agent: "india-equity-research/1.0 (personal research; read-only)"

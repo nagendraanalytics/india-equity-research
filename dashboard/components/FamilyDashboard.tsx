@@ -62,7 +62,7 @@ export function FamilyDashboard({ family }: { family: string }) {
     return (
       <section>{head}
         <p className="empty">No company has {info.label.toLowerCase()} scores yet. Scores appear after a company's next run with a price CSV in its folder
-          (<code>prices__*.csv</code> under the local filings directory). Re-run a company from the Agent console, then reload this page.</p>
+          (<code>prices__*.csv</code> under the local filings directory). Run <code>python -m ier.runtime nse-prices</code> to download them, re-run a company from the Agent console, then reload this page.</p>
       </section>
     );
   }

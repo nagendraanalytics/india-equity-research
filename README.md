@@ -39,3 +39,8 @@ phase-2 fundamental stubs run inside the `technicals` step and are stored in `al
 **Algorithms** menu shows per-stock scoreboards and charts, sector rankings, an overview and a page per
 algorithm. Algorithm scores reach the final scores only through `blend_weight` in `config/algos.yaml`
 (default 0 = off, hard maximum 0.30). All bands are uncalibrated placeholders; see `docs/PLACEHOLDERS.md`.
+
+## Price history for the algorithms
+`python -m ier.runtime nse-prices` downloads daily prices (first run about 290 trading days, later runs one day)
+into `<local_dir>/<ISIN>/prices__nse__<date>.csv` for every company that has an NSE code. Run it each evening after
+18:30 IST; the watcher then re-runs the changed companies. `kite-prices` (Zerodha) remains an alternative source.
